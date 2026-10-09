@@ -304,6 +304,23 @@ table.sc th{color:var(--muted);font-weight:500}
 .persona .big{font-size:80px;line-height:1.1}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .fast *{animation-duration:0s!important;transition-duration:0s!important}
+/* ---------------- 1.1: board moments, talking characters, stickers ---------------- */
+.sl-lnk{transition:filter .25s}
+.sl-lnk.lit{filter:drop-shadow(0 0 8px #fff6a0) drop-shadow(0 0 20px #ffd23f);animation:litPulse .45s ease-in-out infinite alternate}
+@keyframes litPulse{to{filter:drop-shadow(0 0 14px #fff6a0) drop-shadow(0 0 32px #ffb627)}}
+.tok.swallow{transform:scale(.45) rotate(25deg);opacity:.7;filter:saturate(.5) brightness(.85);transition:transform .2s,opacity .2s}
+.tok.popout{animation:popout .5s cubic-bezier(.2,1.7,.4,1)}
+@keyframes popout{0%{transform:scale(.3)}100%{transform:none}}
+.tok.cur{animation:bob2 1.3s ease-in-out infinite}
+.tok.cur.mv{animation:bob2 1.3s ease-in-out infinite,mvPulse 1s ease-in-out infinite}
+@keyframes bob2{50%{transform:translateY(-16%)}}
+.bubble.talk{background:#fff;color:#222;border:2px solid var(--acc);font-size:15px;font-weight:700;border-radius:16px 16px 16px 4px}
+.stk{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;margin-top:6px}
+.stk-i{display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px dashed var(--line);border-radius:14px;padding:8px 4px;background:var(--panel2);font-size:11px;color:var(--muted);line-height:1.2;text-align:center}
+.stk-i i{font-style:normal;font-size:30px;filter:grayscale(1) opacity(.35)}
+.stk-i.got{border-style:solid;border-color:var(--acc);color:var(--ink)}
+.stk-i.got i{filter:none;animation:pop .4s}
+.stk-new{border:2px solid var(--acc);border-radius:14px;padding:8px 10px;margin:8px 0;background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
 
 </style>
 </head>
@@ -1438,6 +1455,14 @@ GAMES.dots = (() => {
    ===================================================================== */
 const LANG = {
 he: {
+  taunts: 'הדמויות של המחשב מדברות', tauntsD: 'בועות קטנות ומצחיקות כשקורה משהו במשחק', stickers: 'המדבקות שלי', newSticker: 'מדבקה חדשה!', newStickers: 'מדבקות חדשות!',
+  st_first: 'ניצחון ראשון', std_first: 'לנצח במשחק כלשהו', st_win_sl: 'אלוף הסולמות', std_win_sl: 'לנצח בסולמות ונחשים', st_win_ludo: 'אלוף הלודו', std_win_ludo: 'לנצח בלודו', st_win_c4: 'ארבע!', std_win_c4: 'לנצח בארבע בשורה', st_win_ttt: 'שלוש בשורה', std_win_ttt: 'לנצח באיקס-עיגול', st_win_mem: 'זוגות זוגות', std_win_mem: 'לנצח בזיכרון', st_win_dots: 'בונה קופסאות', std_win_dots: 'לנצח בנקודות וקופסאות',
+  st_ladders3: 'מטפס על', std_ladders3: 'לעלות ב-3 סולמות במשחק אחד', st_survivor: 'שורד נחשים', std_survivor: 'ליפול ב-3 נחשים — ובכל זאת לנצח', st_space: 'אסטרונאוט', std_space: 'לנצח בלוח החלל', st_capper: 'אוכל הכלים', std_capper: 'לאכול 3 כלים במשחק לודו אחד', st_three6: 'שלוש שישיות', std_three6: 'להטיל 6 שלוש פעמים ברצף (ולהפסיד את התור 😅)',
+  st_beatOwl: 'חכם מהינשוף', std_beatOwl: 'לנצח את פרופסור ינשוף', st_beatTop: 'בלתי מנוצח בעצמי', std_beatTop: 'לנצח את "כמעט בלתי מנוצח"', st_perfectDraw: 'תיקו מושלם', std_perfectDraw: 'להגיע לתיקו מול "בלתי מנוצח" באיקס-עיגול', st_elephant: 'זיכרון של פיל', std_elephant: 'לנצח את "זיכרון של פיל"', st_memAce: 'מוח על', std_memAce: 'למצוא 4 זוגות ברצף בתור אחד', st_boxes5: 'שרשרת קופסאות', std_boxes5: 'לסגור 5 קופסאות בתור אחד',
+  st_family: 'ערב משפחתי', std_family: 'לשחק 3 אנשים או יותר בטלפון אחד', st_online: 'משחקים מרחוק', std_online: 'לשחק משחק אונליין', st_allGames: 'קשת משחקים', std_allGames: 'לשחק בכל 6 המשחקים', st_games10: '10 משחקים', std_games10: 'לשחק 10 משחקים', st_games50: '50 משחקים', std_games50: 'לשחק 50 משחקים',
+  tk_snakeMe: 'אוי לא, נחש! 🐍|למה דווקא אני?! 😩|סססס… זה כואב|טוב, מתחילים מחדש 😅', tk_snakeYou: 'חחח, נחש! 😆|ביי ביי למעלה 👋|הנחש היה רעב 🐍', tk_ladderMe: 'יש! סולם! 🪜|תראו אותי עולה! 🚀|איזה מזל יש לי 😎', tk_ladderYou: 'איזה מזל יש לך! 😮|לא הוגן… 😤|יפה, יפה 👏',
+  tk_capMe: 'סליחה… לא באמת 😈|הביתה, מהר! 🏠|תודה על הכלי 😋', tk_capped: 'נו באמת! 😭|זה עוד יחזור אליך 😤|אוף… הכל מההתחלה', tk_home: 'עוד אחד בבית! 🏠|כמעט סיימתי 😎', tk_three6: 'שלוש שישיות?! 😱|יותר מדי מזל 😅', tk_six: 'שש! 🎲|קדימה! 💨',
+  tk_match: 'זכרתי! 🧠|זוג! ✨|איזה זיכרון יש לי 😎', tk_box: 'קופסה שלי! 📦|עוד אחת 😋', tk_think: 'הממ… 🤔|רגע, אני חושב…|איפה לשים…', tk_win: 'ניצחתי! 🏆|עוד משחק? 😎|היה כיף! 🎉', tk_lose: 'כל הכבוד! 👏|ניצחת אותי הפעם 😮|בפעם הבאה אני מנצח 😤', tk_draw: 'תיקו! 🤝|אף אחד לא ניצח 😅',
   subtitle: 'כל המשפחה משחקת!', mNet: 'אונליין עם המשפחה', mNetD: 'חדר עם קוד, וואטסאפ ודיבור — עד 4 טלפונים', mCpu: 'מול המחשב', mHot: 'כולם בטלפון אחד',
   rules: 'חוקים', stats: 'סטטיסטיקה', replays: 'ריפליי', settings: 'הגדרות', about: 'אודות', resume: 'המשך משחק', resumeNet: 'חזרה לחדר האונליין',
   saveFail: 'השמירה נכשלה — הזיכרון בטלפון מלא', cancel: 'ביטול', ok: 'אישור', close: 'סגור', home: 'לבית', next: 'הבא', skip: 'דלג', letsPlay: 'יאללה, משחקים!',
@@ -1500,6 +1525,14 @@ he: {
   ru_dots: '<p>בתורך מציירים קו אחד בין שתי נקודות. מי שסוגר קופסה (הצלע הרביעית) — היא שלו, <b>והוא מצייר שוב</b>. כשכל הקופסאות נסגרו — מי שיש לו הכי הרבה מנצח.</p><p>טיפ: לא לצייר צלע שלישית — זה נותן קופסה לחבר!</p>'
 },
 en: {
+  taunts: 'Computer characters talk', tauntsD: 'Small funny bubbles when something happens', stickers: 'My stickers', newSticker: 'New sticker!', newStickers: 'New stickers!',
+  st_first: 'First win', std_first: 'Win any game', st_win_sl: 'Ladder champ', std_win_sl: 'Win Snakes & Ladders', st_win_ludo: 'Ludo champ', std_win_ludo: 'Win Ludo', st_win_c4: 'Four!', std_win_c4: 'Win Four in a Row', st_win_ttt: 'Three in a row', std_win_ttt: 'Win Tic-Tac-Toe', st_win_mem: 'Pairs pairs', std_win_mem: 'Win Memory', st_win_dots: 'Box builder', std_win_dots: 'Win Dots & Boxes',
+  st_ladders3: 'Climber', std_ladders3: 'Climb 3 ladders in one game', st_survivor: 'Snake survivor', std_survivor: 'Fall down 3 snakes — and still win', st_space: 'Astronaut', std_space: 'Win on the space board', st_capper: 'Token eater', std_capper: 'Capture 3 tokens in one Ludo game', st_three6: 'Three sixes', std_three6: 'Roll 6 three times in a row (and lose the turn 😅)',
+  st_beatOwl: 'Wiser than the owl', std_beatOwl: 'Beat Professor Owl', st_beatTop: 'Unbeatable me', std_beatTop: 'Beat "almost unbeatable"', st_perfectDraw: 'Perfect draw', std_perfectDraw: 'Draw against "unbeatable" in Tic-Tac-Toe', st_elephant: 'Elephant memory', std_elephant: 'Beat "elephant memory"', st_memAce: 'Super brain', std_memAce: 'Find 4 pairs in a row in one turn', st_boxes5: 'Box chain', std_boxes5: 'Close 5 boxes in one turn',
+  st_family: 'Family night', std_family: 'Play with 3 or more people on one phone', st_online: 'Far away friends', std_online: 'Play an online game', st_allGames: 'Game rainbow', std_allGames: 'Play all 6 games', st_games10: '10 games', std_games10: 'Play 10 games', st_games50: '50 games', std_games50: 'Play 50 games',
+  tk_snakeMe: 'Oh no, a snake! 🐍|Why me?! 😩|Ssss… that hurts', tk_snakeYou: 'Haha, a snake! 😆|Bye bye, top 👋|The snake was hungry 🐍', tk_ladderMe: 'Yes! A ladder! 🪜|Look at me go! 🚀|So lucky 😎', tk_ladderYou: 'So lucky! 😮|Not fair… 😤|Nice, nice 👏',
+  tk_capMe: 'Sorry… not really 😈|Back home, quick! 🏠|Thanks for the token 😋', tk_capped: 'Oh come on! 😭|This will come back to you 😤|Ugh… from the start', tk_home: 'Another one home! 🏠|Almost done 😎', tk_three6: 'Three sixes?! 😱|Too much luck 😅', tk_six: 'Six! 🎲|Go go! 💨',
+  tk_match: 'I remembered! 🧠|A pair! ✨|What a memory 😎', tk_box: 'My box! 📦|Another one 😋', tk_think: 'Hmm… 🤔|Wait, thinking…|Where to go…', tk_win: 'I won! 🏆|Another game? 😎|That was fun! 🎉', tk_lose: 'Well done! 👏|You got me this time 😮|Next time I win 😤', tk_draw: 'A draw! 🤝|Nobody won 😅',
   subtitle: 'The whole family plays!', mNet: 'Online with family', mNetD: 'Room code, WhatsApp and voice — up to 4 phones', mCpu: 'Vs computer', mHot: 'All on one phone',
   rules: 'Rules', stats: 'Stats', replays: 'Replays', settings: 'Settings', about: 'About', resume: 'Continue game', resumeNet: 'Back to the online room',
   saveFail: 'Saving failed — the phone storage is full', cancel: 'Cancel', ok: 'OK', close: 'Close', home: 'Home', next: 'Next', skip: 'Skip', letsPlay: "Let's play!",
@@ -1576,7 +1609,7 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
@@ -1597,7 +1630,7 @@ const LS = (() => {
 
 const ST = Object.assign({
   name: '', lang: 'he', theme: 'gold', mode: 'night', board: 'bright', sound: true, vib: true, speed: 'normal', guided: false,
-  autoMove: true, confirmBig: true, avatar: 0, setup: {}
+  autoMove: true, confirmBig: true, taunts: true, avatar: 0, setup: {}
 }, LS.get('settings', {}));
 const saveST = () => LS.set('settings', ST);
 const STATS = LS.get('stats', {});
@@ -1704,10 +1737,10 @@ function dieSVG(v, cls) {
 }
 
 /* ---------- celebration ---------- */
-function confetti(n) {
+function confetti(n, ci) {
   if (FAST || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
   const c = document.createElement('div'); c.className = 'confetti';
-  const cols = ['#e8453c', '#2f9e4f', '#f4b81c', '#2f74d8', '#ff7ac6', '#9b5de5', '#ffffff'];
+  const cols = ci == null ? ['#e8453c', '#2f9e4f', '#f4b81c', '#2f74d8', '#ff7ac6', '#9b5de5', '#ffffff'] : [PC(ci), PC(ci), PC(ci), '#f4b81c', '#ffffff', '#ffe36a'];
   for (let i = 0; i < (n || 90); i++) {
     const p = document.createElement('i');
     p.style.cssText = 'left:' + (Math.random() * 100) + 'vw;background:' + cols[i % cols.length] + ';animation-duration:' + (1.8 + Math.random() * 1.6) + 's;animation-delay:' + (Math.random() * .5) + 's;--dx:' + (Math.random() * 120 - 60) + 'px;--rot:' + (Math.random() * 900 - 450) + 'deg;' + (i % 3 ? '' : 'border-radius:50%;');
@@ -1790,6 +1823,7 @@ UI.sl = (() => {
     // up links
     let k = 0;
     for (const f in B.up) {
+      g += '<g class="sl-lnk" data-l="' + f + '">';
       const a = cxy(+f), b = cxy(B.up[f]), dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy), nx = -dy / len * 21, ny = dx / len * 21, ang = Math.atan2(dy, dx) * 180 / Math.PI;
       if (th.up === 'ladder' || th.up === 'cane') {
         const rail = th.up === 'cane' ? '#e23a4c' : th.wood[0], rung = th.up === 'cane' ? '#fff' : th.wood[1];
@@ -1810,11 +1844,12 @@ UI.sl = (() => {
           + svg('text', { x: 0, y: 0, 'text-anchor': 'middle', 'font-size': 52, transform: 'translate(' + a[0] + ' ' + (a[1] + 16) + ') rotate(' + (ang + 45) + ')' }, '🚀')
           + svg('text', { x: b[0], y: b[1] + 16, 'text-anchor': 'middle', 'font-size': 40 }, '🌟');
       }
-      k++;
+      g += '</g>'; k++;
     }
     // down links
     k = 0;
     for (const f in B.down) {
+      g += '<g class="sl-lnk" data-l="' + f + '">';
       const Bz = linkCurve(+f, B.down[f], k), a = Bz[0], b = Bz[3], d = bpath(Bz);
       if (th.down === 'snake') {
         const [c1, c2, c3] = th.snakes[k % th.snakes.length];
@@ -1833,7 +1868,7 @@ UI.sl = (() => {
           + svg('circle', { cx: a[0], cy: a[1], r: 40, fill: 'none', stroke: '#f0dcff', 'stroke-width': 5 }) + svg('circle', { cx: a[0], cy: a[1], r: 26, fill: 'none', stroke: '#d6b8ff', 'stroke-width': 4, 'stroke-dasharray': '10 8' })
           + svg('text', { x: b[0], y: b[1] + 14, 'text-anchor': 'middle', 'font-size': 34 }, '☄️');
       }
-      k++;
+      g += '</g>'; k++;
     }
     return '<svg class="base" viewBox="-14 -14 1028 1028" aria-hidden="true">' + g + '</svg>';
   }
@@ -1848,7 +1883,7 @@ UI.sl = (() => {
     size(el) { el.style.setProperty('--ts', (el.clientWidth * 0.072) + 'px'); },
     draw(el, V) {
       el._pos = V.pos.slice();
-      V.players.forEach((p, s) => { const t = tokEl(el, 's' + s, this.color(V, s), pemoji(V, s)); const [x, y] = frac(el._pos[s], spots(el._pos, s)); placeTok(t, x, y); t.classList.toggle('mv', !!(this._cx && this._cx.mine && V.turn === s && !V.over)); });
+      V.players.forEach((p, s) => { const t = tokEl(el, 's' + s, this.color(V, s), pemoji(V, s)); const [x, y] = frac(el._pos[s], spots(el._pos, s)); placeTok(t, x, y); t.classList.toggle('mv', !!(this._cx && this._cx.mine && V.turn === s && !V.over)); t.classList.toggle('cur', V.turn === s && !V.over); });
     },
     async anim(el, V, evs, cx) {
       for (const e of evs) {
@@ -1861,10 +1896,15 @@ UI.sl = (() => {
         } else if (e.e === 'up' || e.e === 'down') {
           const t = tokEl(el, 's' + e.s, this.color(V, e.s), pemoji(V, e.s)), B = GAMES.sl.BOARDS[V.cfg.board] || GAMES.sl.BOARDS.classic;
           beep(e.e === 'up' ? 'ladder' : 'snake');
+          const lk = el.querySelector('.sl-lnk[data-l="' + e.from + '"]'), th = TH[V.cfg.board] || TH.classic, eat = e.e === 'down' && th.down !== 'slide';
+          if (lk) lk.classList.add('lit');
+          t.classList.remove('cur'); if (eat) t.classList.add('swallow');
           let pts;
           if (e.e === 'down') { const keys = Object.keys(B.down), k = keys.indexOf(String(e.from)), Bz = linkCurve(e.from, e.to, k); pts = []; for (let i = 1; i <= 24; i++) { const p = bpt(Bz, i / 24); pts.push([(p[0] + 14) / 1028, (p[1] + 14) / 1028]); } }
           else { const a = frac(e.from), b = frac(e.to); pts = []; for (let i = 1; i <= 12; i++) pts.push([a[0] + (b[0] - a[0]) * i / 12, a[1] + (b[1] - a[1]) * i / 12]); }
           await glide(t, pts, (e.e === 'up' ? 900 : 1100) * SPEED());
+          if (lk) lk.classList.remove('lit');
+          if (eat) { t.classList.remove('swallow'); t.classList.add('popout'); beep('place'); setTimeout(() => t.classList.remove('popout'), 500); }
           el._pos[e.s] = e.to;
           bubbleSeat(e.s, e.e === 'up' ? '🎉' : '😱', 'big', 1600);
         } else if (e.e === 'stay') { toastBoard(T('sl_exact', { n: iso(e.need) })); beep('miss'); await wait(500 * SPEED()); }
@@ -1933,7 +1973,7 @@ UI.ludo = (() => {
     draw(el, V, cx) {
       cx = cx || this._cx || {}; el._tok = V.tok.map(a => a.slice());
       const L = layout(V, s => el._tok[s]), mv = cx.mine && V.phase === 'move' ? new Set(GAMES.ludo.moves(V, V.turn, V.die).map(m => m.t)) : new Set();
-      V.players.forEach((p, s) => el._tok[s].forEach((pr, t) => { const tk = tokEl(el, s + ':' + t, V.col[s], pemoji(V, s)); placeTok(tk, ...L[s + ':' + t]); tk.classList.toggle('mv', s === V.turn && mv.has(t)); tk.classList.toggle('hintt', cx.hint && cx.hint.t === t && s === V.turn); }));
+      V.players.forEach((p, s) => el._tok[s].forEach((pr, t) => { const tk = tokEl(el, s + ':' + t, V.col[s], pemoji(V, s)); placeTok(tk, ...L[s + ':' + t]); tk.classList.toggle('mv', s === V.turn && mv.has(t)); tk.classList.toggle('cur', s === V.turn && !V.over && pr >= 0 && pr < 56 && !mv.size); tk.classList.toggle('hintt', cx.hint && cx.hint.t === t && s === V.turn); }));
       // destination marks for my movable tokens
       const mk = el.querySelector('.ld-marks'); let h = '';
       if (mv.size) for (const m of GAMES.ludo.moves(V, V.turn, V.die)) { const [x, y] = cellOf(V.col[V.turn], m.to, m.t); h += svg('circle', { cx: x, cy: y, r: .34, fill: 'none', stroke: PC(V.col[V.turn]), 'stroke-width': .09, 'stroke-dasharray': '.12 .1' }); }
@@ -1954,7 +1994,7 @@ UI.ludo = (() => {
           el._tok[e.s][e.t] = e.to;
         } else if (e.e === 'cap') {
           const tk = tokEl(el, e.s + ':' + e.t, V.col[e.s], pemoji(V, e.s)), c = V.col[e.s];
-          beep('cap'); bubbleSeat(e.by, '💥', 'big', 1500);
+          beep('cap'); bubbleSeat(e.by, '💥', 'big', 1500); setTimeout(() => bubbleSeat(e.s, '😭', 'big', 1500), 350);
           const a = [tk._x, tk._y], b = F(cellOf(c, -1, e.t)), mid = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - .12];
           await glide(tk, [mid, b], 650 * SPEED());
           el._tok[e.s][e.t] = -1;
@@ -2231,6 +2271,7 @@ function schedule() {
     const base = { slow: 1300, normal: 800, fast: 380 }[ST.speed] || 800;
     delay = FAST ? 20 : (G.game === 'ludo' && G.phase === 'move') || (G.game === 'mem' && G.up.length === 1) ? 520 * sp : (G.game === 'dots' && G.last >= 0 && G.lines[G.last] === s) ? 450 * sp : base;
     const lvl = p.kind === 'bot' ? p.lvl : 1;
+    if (p.kind === 'bot') { try { thinkTalk(curView()); } catch (x) {} }
     pick = () => GAMES[G.game].ai(G, lvl);
   } else {
     const one = singleOption(G); if (!one) return;
@@ -2343,12 +2384,12 @@ function render() {
   renderTop(V);
   if (CUR.animating) return;
   const fresh = freshEvents(V), U = UI[V.game], el = $('#board');
-  U._cx = ctx(V);
+  U._cx = ctx(V); if (fresh.length) trackEvents(V, fresh);
   if (fresh.length && !FAST) {
     // the bar and the player strip keep showing the move being animated; they update when it ends
     CUR.animating = true; $$('#gact button').forEach(b => { b.disabled = true; b.classList.remove('go'); }); renderStatus(V);
     const me = CUR;
-    U.anim(el, V, fresh, U._cx).catch(e => console.error(e)).then(() => { if (CUR !== me) return; CUR.animating = false; render(); schedule(); });
+    U.anim(el, V, fresh, U._cx).catch(e => console.error(e)).then(() => { if (CUR !== me) return; CUR.animating = false; try { react(V, fresh); } catch (x) {} render(); schedule(); });
     return;
   }
   if (fresh.length) { fresh.forEach(e => { if (e.e === 'roll') CUR.lastRoll = e.v; }); }
@@ -2468,10 +2509,13 @@ function handleEnd(V) {
   if (CUR.endKey === key) return;
   CUR.endKey = key;
   trackGame(V);
+  CUR.newStk = checkStickers(V); endTalk(V);
+  const newStk = CUR.newStk;   // keep our own copy: a new game may have started when the timer fires
+  if (newStk.length) setTimeout(() => { beep('match'); toast('🏅 ' + T('newSticker') + ': ' + newStk.map(id => esc(T('st_' + id))).join(' · '), 3500); }, 900);
   const me = mySeat(V), w = V.winner, iWon = me >= 0 && w === me, draw = w === -1;
   const ci = w >= 0 ? UI[V.game].color(V, w) : null;
   if (draw) { showBanner('🤝 ' + T('draw'), null); beep('draw'); }
-  else if (me < 0 || iWon) { showBanner('🏆 ' + (iWon ? T('youWon') : esc(pname(V, w))), ci); beep('win'); confetti(); buzz(60); }
+  else if (me < 0 || iWon) { showBanner('🏆 ' + (iWon ? T('youWon') : esc(pname(V, w))), ci); beep('win'); confetti(110, ci); buzz(60); }
   else { showBanner(pemoji(V, w) + ' ' + esc(pname(V, w)), ci, T('wonShort')); beep('lose'); buzz(30); }
   const id = CUR.id; setTimeout(() => { if (CUR && CUR.id === id && !anyOv()) showEnd(curView()); }, FAST ? 30 : 1500);
 }
@@ -2491,7 +2535,7 @@ function showEnd(V) {
   const title = w === -1 ? '🤝 ' + T('draw') : me >= 0 && w === me ? T('youWon') : T('winnerIs', { n: esc(pname(V, w)) });
   const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
   const rows = places(V).map((x, i) => '<div class="rp' + (x.s === w ? ' win' : '') + '" style="' + pcStyle(U.color(V, x.s)) + '"><span class="pl">' + (w === -1 && (V.tied || []).includes(x.s) ? '🤝' : ['🥇', '🥈', '🥉', '4'][i]) + '</span><span class="em">' + pemoji(V, x.s) + '</span><b>' + esc(pname(V, x.s)) + '</b><span>' + scoreTxt(x.s) + '</span></div>').join('');
-  const extra = (CUR.hints ? '<p class="muted">' + T('hintsUsed', { n: CUR.hints }) + '</p>' : '') + (V.game === 'mem' && V.players.length === 1 ? '<p class="muted">' + T('memFlips', { n: iso(V.flips[0]) }) + '</p>' : '');
+  const extra = newStickersHTML(CUR.newStk || []) + (CUR.hints ? '<p class="muted">' + T('hintsUsed', { n: CUR.hints }) + '</p>' : '') + (V.game === 'mem' && V.players.length === 1 ? '<p class="muted">' + T('memFlips', { n: iso(V.flips[0]) }) + '</p>' : '');
   const guest = isGuest(), net = CUR.mode === 'net';
   const again = guest ? '<p class="muted">' + T('waitHost') + '</p>' : '<button class="btn main huge wide" id="oAgain">🔄 ' + T('playAgain') + '</button>';
   const o = overlay('<div class="trophy">' + (w === -1 ? '🤝' : me >= 0 && w !== me ? pemoji(V, w) : '🏆') + '</div><h2 style="text-align:center">' + title + '</h2><div class="res">' + rows + '</div>' + extra + again
@@ -2629,6 +2673,98 @@ function evLine(V, e) {
   }
   return '';
 }
+
+/* ---- fun.js ---- */
+/* =====================================================================
+   FamilyNest 1.1 — the fun layer: computer characters that talk, and stickers.
+   Pure presentation: reads events and the final state, never changes a game.
+   ===================================================================== */
+/* ---------- talking characters ---------- */
+let talkUntil = 0;
+function say(V, s, key, force) {
+  if (!ST.taunts || FAST || !V || !V.players[s] || V.players[s].kind !== 'bot') return false;
+  if (!force && (Date.now() < talkUntil || Math.random() > 0.6)) return false;
+  const list = T(key).split('|'); if (!list[0] || list[0] === key) return false;
+  bubble(s, esc(list[Math.floor(Math.random() * list.length)]), 'talk', 2800); talkUntil = Date.now() + 2300; return true;
+}
+const botSeats = (V, not) => V.players.map((p, s) => p.kind === 'bot' && s !== not ? s : -1).filter(s => s >= 0);
+const someBot = (V, not) => { const b = botSeats(V, not); return b.length ? b[Math.floor(Math.random() * b.length)] : -1; };
+const isBotSeat = (V, s) => !!(V.players[s] && V.players[s].kind === 'bot');
+// reactions to what just happened (after its animation)
+function react(V, evs) {
+  if (!ST.taunts || FAST) return;
+  for (const e of evs) {
+    const s = e.s, bot = isBotSeat(V, s);
+    if (e.e === 'down') { if (bot) say(V, s, 'tk_snakeMe'); else { const b = someBot(V, s); if (b >= 0) say(V, b, 'tk_snakeYou'); } }
+    else if (e.e === 'up') { if (bot) say(V, s, 'tk_ladderMe'); else { const b = someBot(V, s); if (b >= 0) say(V, b, 'tk_ladderYou'); } }
+    else if (e.e === 'cap') { if (isBotSeat(V, e.by)) say(V, e.by, 'tk_capMe', true); else if (bot) say(V, s, 'tk_capped', true); }
+    else if (e.e === 'home' && bot) say(V, s, 'tk_home');
+    else if (e.e === 'three6' && bot) say(V, s, 'tk_three6', true);
+    else if (e.e === 'roll' && e.v === 6 && bot && V.game === 'ludo') say(V, s, 'tk_six');
+    else if (e.e === 'match' && bot) say(V, s, 'tk_match');
+    else if (e.e === 'line' && bot && e.boxes && e.boxes.length) say(V, s, 'tk_box');
+  }
+}
+// a word while thinking (board games without dice)
+function thinkTalk(V) { if (['c4', 'ttt', 'dots'].includes(V.game) && Math.random() < 0.18) say(V, V.turn, 'tk_think'); }
+function endTalk(V) {
+  if (!ST.taunts || FAST) return;
+  const w = V.winner;
+  if (w === -1) { const b = someBot(V); if (b >= 0) say(V, b, 'tk_draw', true); }
+  else if (isBotSeat(V, w)) say(V, w, 'tk_win', true);
+  else { const b = someBot(V); if (b >= 0) say(V, b, 'tk_lose', true); }
+}
+
+/* ---------- stickers (achievements) ---------- */
+const STICKERS = [
+  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'],
+  ['ladders3', '🪜'], ['survivor', '💪'], ['space', '🚀'], ['capper', '💥'], ['three6', '😱'],
+  ['beatOwl', '🦉'], ['beatTop', '🥇'], ['perfectDraw', '🤝'], ['elephant', '🐘'], ['memAce', '🧠'], ['boxes5', '📦'],
+  ['family', '👨‍👩‍👧'], ['online', '🌐'], ['allGames', '🌈'], ['games10', '🎉'], ['games50', '🌟']
+];
+let STK = LS.get('stickers', {});
+function earn(id, out) { if (STK[id]) return; STK[id] = Date.now(); out.push(id); }
+// counters for "me" during a game (fed from the events)
+function trackEvents(V, evs) {
+  if (!CUR) return; const me = mySeat(V); if (me < 0) return;
+  const k = CUR.trk || (CUR.trk = { streak: 0, best: 0, turnBoxes: 0, bestBoxes: 0, t6: 0 });
+  for (const e of evs) {
+    if (e.e === 'match') { if (e.s === me) { k.streak++; k.best = Math.max(k.best, k.streak); } else k.streak = 0; }
+    else if (e.e === 'miss' && e.s === me) k.streak = 0;
+    else if (e.e === 'line') { if (e.s === me && e.boxes.length) { k.turnBoxes += e.boxes.length; k.bestBoxes = Math.max(k.bestBoxes, k.turnBoxes); } else k.turnBoxes = 0; }
+    else if (e.e === 'three6' && e.s === me) k.t6 = 1;
+  }
+}
+function checkStickers(V) {
+  const got = [], me = mySeat(V), mode = statMode(V), k = (CUR && CUR.trk) || {};
+  const total = GAME_IDS.reduce((a, g) => a + ['cpu', 'hot', 'net'].reduce((b, m) => b + ((STATS[g] || {})[m] || {}).games || 0, 0), 0);
+  if (total >= 10) earn('games10', got); if (total >= 50) earn('games50', got);
+  if (GAME_IDS.every(g => ['cpu', 'hot', 'net'].some(m => ((STATS[g] || {})[m] || {}).games))) earn('allGames', got);
+  if (mode === 'hot' && humans(V) >= 3) earn('family', got);
+  if (mode === 'net') earn('online', got);
+  if (me >= 0) {
+    const won = V.winner === me, bots = V.players.filter(p => p.kind === 'bot'), top = bots.length ? Math.max(...bots.map(p => p.lvl)) : -1;
+    if (won) { earn('first', got); earn('win_' + V.game, got); }
+    if (V.game === 'sl') { if (V.ups[me] >= 3) earn('ladders3', got); if (won && V.downs[me] >= 3) earn('survivor', got); if (won && V.cfg.board === 'space') earn('space', got); }
+    if (V.game === 'ludo' && V.caps[me] >= 3) earn('capper', got);
+    if (k.t6) earn('three6', got);
+    if (won && bots.some(p => p.pe === 0 && p.lvl >= (V.game === 'mem' || V.game === 'dots' || V.game === 'ludo' ? 1 : 2))) earn('beatOwl', got);
+    if (won && top === 4 && (V.game === 'c4' || V.game === 'ttt')) earn('beatTop', got);
+    if (V.game === 'ttt' && V.cfg.size === 3 && V.winner === -1 && top === 3) earn('perfectDraw', got);
+    if (V.game === 'mem' && won && top === 2) earn('elephant', got);
+    if (k.best >= 4) earn('memAce', got);
+    if (k.bestBoxes >= 5) earn('boxes5', got);
+  }
+  if (got.length) LS.set('stickers', STK);
+  return got;
+}
+function stickerAlbum() {
+  const n = STICKERS.filter(([id]) => STK[id]).length;
+  return '<div class="card"><h3>🏅 ' + T('stickers') + ' <span class="ltr muted" style="font-size:15px">' + n + '/' + STICKERS.length + '</span></h3><div class="stk">'
+    + STICKERS.map(([id, ic]) => '<button class="stk-i' + (STK[id] ? ' got' : '') + '" data-stk="' + id + '"><i>' + ic + '</i><span>' + esc(T('st_' + id)) + '</span></button>').join('') + '</div></div>';
+}
+function bindAlbum(root) { root.querySelectorAll('[data-stk]').forEach(b => b.onclick = () => { const id = b.dataset.stk; toast((STK[id] ? '🏅 ' : '🔒 ') + esc(T('std_' + id)), 3000); }); }
+const newStickersHTML = ids => ids.length ? '<div class="stk-new"><b>🏅 ' + (ids.length > 1 ? T('newStickers') : T('newSticker')) + '</b><div class="stk">' + ids.map(id => { const s = STICKERS.find(x => x[0] === id); return '<span class="stk-i got"><i>' + s[1] + '</i><span>' + esc(T('st_' + id)) + '</span></span>'; }).join('') + '</div></div>' : '';
 
 /* ---- online.js ---- */
 /* =====================================================================
@@ -3037,7 +3173,7 @@ function renderSettings() {
     + '<label class="f" style="margin-top:10px">' + T('boardStyle') + segHTML('board', BSTYLES.map(b => [b, T('b_' + b)]), ST.board) + '</label></div>'
     + '<div class="card"><h3>' + T('gameplay') + '</h3>'
     + '<label class="f">' + T('speed') + segHTML('speed', [['slow', '🐢 ' + T('sp_slow')], ['normal', T('sp_normal')], ['fast', '🐇 ' + T('sp_fast')]], ST.speed) + '</label>'
-    + [['autoMove', 'autoMove', 'autoMoveD'], ['confirmBig', 'confirmBig', 'confirmBigD'], ['sound', 'sound'], ['vib', 'vibrate']].map(([k, t, d]) => '<div class="sw"><span>' + T(t) + (d ? '<small class="muted">' + T(d) + '</small>' : '') + '</span><input type="checkbox" data-k="' + k + '"' + (ST[k] ? ' checked' : '') + '></div>').join('') + '</div>'
+    + [['autoMove', 'autoMove', 'autoMoveD'], ['confirmBig', 'confirmBig', 'confirmBigD'], ['taunts', 'taunts', 'tauntsD'], ['sound', 'sound'], ['vib', 'vibrate']].map(([k, t, d]) => '<div class="sw"><span>' + T(t) + (d ? '<small class="muted">' + T(d) + '</small>' : '') + '</span><input type="checkbox" data-k="' + k + '"' + (ST[k] ? ' checked' : '') + '></div>').join('') + '</div>'
     + '<div class="card"><h3>' + T('backup') + '</h3><p class="muted" style="font-size:14px">' + T('backupD') + '</p><div class="row"><button class="btn" id="bkOut">⬇️ ' + T('exportB') + '</button><button class="btn" id="bkIn">⬆️ ' + T('importB') + '</button></div><input type="file" id="bkFile" accept="application/json,.json" class="hide"></div>'
     + '<div class="card"><div class="row"><button class="btn" id="stGuide">🧭 ' + T('guide') + '</button><button class="btn" id="stAbout">ℹ️ ' + T('about') + '</button></div></div>'
     + '<button class="btn wide" id="stReset" style="border-color:var(--bad);color:var(--bad)">' + T('resetAll') + '</button>';
@@ -3053,7 +3189,7 @@ function renderSettings() {
   $('#stReset').onclick = () => confirmBox(T('resetQ1'), T('resetAll'), () => confirmBox(T('resetQ2'), T('resetYes'), () => { LS.keys().forEach(k => LS.del(k)); location.reload(); }));
 }
 function exportBackup() {
-  const data = { app: 'familynest', v: APP_VERSION, by: ST.name, date: new Date().toISOString(), settings: ST, stats: STATS, replays: REPLAYS, game: LS.get('game', null) };
+  const data = { app: 'familynest', v: APP_VERSION, by: ST.name, date: new Date().toISOString(), settings: ST, stats: STATS, replays: REPLAYS, stickers: STK, game: LS.get('game', null) };
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' }), name = 'familynest-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'application/json' }) : null;
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'FamilyNest', text: T('backupBy', { n: ST.name || '' }) }).catch(() => {}); return; }
@@ -3065,7 +3201,7 @@ function importBackup(f) {
     let d; try { d = JSON.parse(r.result); } catch (e) { toast(T('badFile')); return; }
     if (!d || d.app !== 'familynest') { toast(T('badFile')); return; }
     confirmBox(T('importQ', { n: d.by || '?', d: (d.date || '').slice(0, 10) }), T('importB'), () => {
-      LS.set('settings', d.settings || {}); LS.set('stats', d.stats || {}); LS.set('replays', d.replays || []); if (d.game) LS.set('game', d.game); else LS.del('game');
+      LS.set('settings', d.settings || {}); LS.set('stats', d.stats || {}); LS.set('replays', d.replays || []); LS.set('stickers', d.stickers || {}); if (d.game) LS.set('game', d.game); else LS.del('game');
       location.reload();
     });
   };
@@ -3090,7 +3226,7 @@ function renderStats() {
     const lt = L.length && cpu.games ? '<table class="sc" style="margin-top:10px"><tr><th>' + T('level') + '</th><th>' + T('s_games') + '</th><th>' + T('s_wins') + '</th></tr>' + L.filter(l => cpu['g' + l[0]]).map(l => '<tr><td>' + l[2] + ' ' + esc(T(l[1])) + '</td><td>' + (cpu['g' + l[0]] || 0) + '</td><td>' + (cpu['w' + l[0]] || 0) + '</td></tr>').join('') + '</table>' : '';
     h += '<div class="card"><h3>' + GICON[g] + ' ' + esc(gname(g)) + '</h3><div class="stat">' + cells.map(c => '<div><b class="ltr">' + c[1] + '</b><span>' + T(c[0]) + '</span></div>').join('') + '</div>' + lt + '</div>';
   }
-  $('#statBody').innerHTML = h || '<div class="card"><p>' + T('noStats') + '</p></div>';
+  $('#statBody').innerHTML = stickerAlbum() + (h || '<div class="card"><p>' + T('noStats') + '</p></div>'); bindAlbum($('#statBody'));
 }
 function renderReplays() {
   const B = $('#repBody');
