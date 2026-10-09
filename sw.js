@@ -20,7 +20,7 @@
 })();
 
 /* FamilyNest service worker — network-first for pages (never a bare error), cache-first for files */
-const VERSION = 'familynest-v1';
+const VERSION = 'familynest-v2';
 const CORE = ['./', 'manifest.json', 'icon-192.png', 'icon-512.png', 'privacy_policy.html'];
 const ROOT = new URL('./', self.registration.scope).pathname;
 
