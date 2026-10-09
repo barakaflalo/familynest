@@ -1,0 +1,19 @@
+{
+  "name": "FamilyNest · משחקי משפחה",
+  "short_name": "FamilyNest",
+  "description": "סולמות ונחשים, לודו, ארבע בשורה, איקס-עיגול, זיכרון ונקודות וקופסאות — מול המחשב, בטלפון אחד או אונליין עם דיבור.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070707",
+  "theme_color": "#0a0a0a",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["games", "kids", "entertainment"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
