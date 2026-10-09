@@ -322,6 +322,39 @@ table.sc th{color:var(--muted);font-weight:500}
 .stk-i.got i{filter:none;animation:pop .4s}
 .stk-new{border:2px solid var(--acc);border-radius:14px;padding:8px 10px;margin:8px 0;background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
 
+/* ---------------- 1.2 drawn art (falls back to emoji when a file is missing) ---------------- */
+img.ai{width:1.2em;height:1.2em;object-fit:contain;vertical-align:-.28em;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.aif{display:inline}
+.tok img.ai{width:100%;height:100%}
+.pchip .em img.ai{width:122%;height:122%;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.plist.many .pchip .em img.ai{width:120%;height:120%}
+.c4-disc img.ai{width:80%;height:80%}
+.mm-f img.mi{width:84%;height:84%}
+.avb img.ai,.avs>button img.ai{width:108%;height:108%}
+.seat .avb{overflow:visible}
+.persona .big img.ai{width:132px;height:132px;vertical-align:middle}
+.trophy img.ai{width:120px;height:120px;vertical-align:middle}
+.rp .em img.ai{width:40px;height:40px}
+.banner img.ai{width:1.3em;height:1.3em}
+.seg img.ai{width:1.6em;height:1.6em;vertical-align:-.45em}
+.dieBtn span img.ai{width:1.5em;height:1.5em}
+.gtile .art img.tl{width:94%;max-width:180px;height:auto;max-height:112px;object-fit:contain;filter:drop-shadow(0 4px 2px rgba(0,0,0,.25))}
+html.art .mm-b{background:url(card-back.webp) center/cover,repeating-linear-gradient(45deg,var(--acc) 0 8px,color-mix(in srgb,var(--acc) 70%,#000) 8px 16px)}
+html.art .mm-b::after{content:none}
+/* Ludo: real pawns with the animal's face on the head */
+.tok.pw{background:none;box-shadow:none;width:calc(var(--ts)*1.6);height:calc(var(--ts)*1.6);margin-left:calc(var(--ts)*-.8);margin-top:calc(var(--ts)*-1.12);filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.tok.pw img.pawn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.tok.pw .pf{position:absolute;left:50%;top:28%;width:60%;height:60%;transform:translate(-50%,-50%);display:grid;place-items:center;font-size:calc(var(--ts)*.5);line-height:1}
+.tok.pw .pf img.ai{width:100%;height:100%}
+.tok.pw.mv{animation:pwPulse 1s ease-in-out infinite}
+.tok.pw.cur.mv{animation:bob2 1.3s ease-in-out infinite,pwPulse 1s ease-in-out infinite}
+.tok.pw.hintt{box-shadow:none;filter:drop-shadow(0 0 5px #59c3ff) drop-shadow(0 0 3px #59c3ff)}
+@keyframes pwPulse{50%{filter:drop-shadow(0 0 calc(var(--ts)*.16) #fff) drop-shadow(0 0 calc(var(--ts)*.12) var(--pc))}}
+/* space board: black holes turn slowly */
+.sl-spin{animation:slSpin 9s linear infinite}
+@keyframes slSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sl-spin{animation:none}}
+
 </style>
 </head>
 <body>
@@ -1609,7 +1642,7 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
@@ -1733,7 +1766,8 @@ const wait = ms => new Promise(r => setTimeout(r, Math.max(0, ms)));
 const PIPS = { 1: [[.5, .5]], 2: [[.25, .25], [.75, .75]], 3: [[.25, .25], [.5, .5], [.75, .75]], 4: [[.25, .25], [.75, .25], [.25, .75], [.75, .75]], 5: [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], 6: [[.27, .22], [.73, .22], [.27, .5], [.73, .5], [.27, .78], [.73, .78]] };
 function dieSVG(v, cls) {
   return '<svg class="' + (cls || '') + '" viewBox="0 0 100 100" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="20" fill="#fffdf6" stroke="rgba(0,0,0,.3)" stroke-width="3"/>'
-    + (PIPS[v] || []).map(([x, y]) => '<circle cx="' + (x * 100) + '" cy="' + (y * 100) + '" r="9.5" fill="' + (v === 6 ? '#c62828' : '#1b1712') + '"/>').join('') + (v ? '' : '<text x="50" y="66" text-anchor="middle" font-size="46" font-family="Secular One,Rubik,sans-serif" fill="#999">?</text>') + '</svg>';
+    + (PIPS[v] || []).map(([x, y]) => '<circle cx="' + (x * 100) + '" cy="' + (y * 100) + '" r="9.5" fill="' + (v === 6 ? '#c62828' : '#1b1712') + '"/>').join('') + (v ? '' : '<text x="50" y="66" text-anchor="middle" font-size="46" font-family="Secular One,Rubik,sans-serif" fill="#999">?</text>')
+    + (v && typeof ART_ON !== 'undefined' && ART_ON ? '<image href="die-' + v + '.webp" x="-8" y="-8" width="116" height="116"/>' : '') + '</svg>';
 }
 
 /* ---------- celebration ---------- */
@@ -1753,6 +1787,48 @@ function confetti(n, ci) {
 function stat(game, mode) { const g = STATS[game] || (STATS[game] = {}); return g[mode] || (g[mode] = {}); }
 function inc(game, mode, k, n) { const s = stat(game, mode); s[k] = (s[k] || 0) + (n == null ? 1 : n); }
 
+/* ---- art.js ---- */
+/* =====================================================================
+   FamilyNest 1.2 — drawn art. Every picture has an emoji (or drawn) fallback:
+   if a file is missing the app looks exactly like 1.1.
+   Files sit flat next to index.html (see ART_FILES, also cached by sw.js).
+   ===================================================================== */
+const AV_IDS = ['lion', 'panda', 'frog', 'fox', 'monkey', 'koala', 'tiger', 'rabbit', 'dog', 'cat', 'unicorn', 'octopus', 'penguin', 'turtle', 'owl', 'bear'];
+const EMO2AV = {}; AVATARS.forEach((e, i) => { EMO2AV[e] = AV_IDS[i]; });
+let ART_ON = !/[?&]noart=1/.test(location.search);
+const PAWN_COL = ['red', 'green', 'yellow', 'blue'];
+function artFail(im) { const s = document.createElement('span'); s.className = 'aif'; s.textContent = im.alt; im.replaceWith(s); }
+const imgTag = (src, alt, cls) => ART_ON ? '<img class="' + (cls || 'ai') + '" src="' + src + '" alt="' + alt + '" draggable="false" onerror="artFail(this)">' : alt;
+// an animal (by its emoji) as a picture; joy = the happy face
+const avHTML = (emoji, joy) => { const id = EMO2AV[emoji]; return id ? imgTag('av-' + id + (joy ? '-joy' : '') + '.webp', emoji) : emoji; };
+const avImg = (n, joy) => avHTML(avOf(n), joy);
+// memory pictures
+const memHTML = (set, v) => { const S = MEM_SETS[set] || MEM_SETS.animals, e = S[v] || '❔'; return S[v] ? imgTag('mem-' + (MEM_SETS[set] ? set : 'animals') + '-' + String(v).padStart(2, '0') + '.webp', e, 'ai mi') : e; };
+// a picture inside an SVG (falls back to the emoji as SVG text)
+function svgArt(file, cx, cy, size, emoji, fs, tr) {
+  if (!ART_ON) return '<text x="' + cx + '" y="' + (cy + fs * .32) + '" text-anchor="middle" font-size="' + fs + '"' + (tr ? ' transform="' + tr + '"' : '') + '>' + emoji + '</text>';
+  return '<image href="' + file + '" x="' + (cx - size / 2) + '" y="' + (cy - size / 2) + '" width="' + size + '" height="' + size + '"' + (tr ? ' transform="' + tr + '"' : '') + ' preserveAspectRatio="xMidYMid meet"/>';
+}
+// one probe at start: if the art isn't there (old upload, offline first run) use emoji everywhere
+function artProbe(done) {
+  if (!ART_ON) { document.documentElement.classList.remove('art'); return; }
+  document.documentElement.classList.add('art');
+  const i = new Image(); i.onerror = () => { ART_ON = false; document.documentElement.classList.remove('art'); if (done) done(); }; i.src = 'av-lion.webp';
+}
+const ART_FILES = (() => {
+  const f = [];
+  AV_IDS.forEach(a => f.push('av-' + a + '.webp', 'av-' + a + '-joy.webp'));
+  ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'].forEach(t => f.push('tile-' + t + '.webp'));
+  ['animals', 'food', 'ride', 'sea'].forEach(s => { for (let i = 0; i < 12; i++) f.push('mem-' + s + '-' + String(i).padStart(2, '0') + '.webp'); });
+  f.push('card-back.webp');
+  ['green', 'orange', 'purple', 'red', 'yellow', 'olive'].forEach(c => f.push('sl-head-' + c + '.webp'));
+  ['rocket', 'hole', 'choco', 'flower', 'star', 'crown', 'flag'].forEach(n => f.push('sl-' + n + '.webp'));
+  ['classic', 'jungle', 'space', 'candy'].forEach(n => f.push('sl-frame-' + n + '.webp'));
+  PAWN_COL.forEach(c => f.push('pawn-' + c + '.webp'));
+  for (let i = 1; i <= 6; i++) f.push('die-' + i + '.webp');
+  return f;
+})();
+
 /* ---- boards.js ---- */
 /* =====================================================================
    FamilyNest — boards. One renderer per game, same interface:
@@ -1765,11 +1841,12 @@ function inc(game, mode, k, n) { const s = stat(game, mode); s[k] = (s[k] || 0) 
 const UI = {};
 const SVGNS = 'http://www.w3.org/2000/svg';
 const pct = v => (v * 100).toFixed(3) + '%';
-function tokEl(el, key, ci, emoji) {
+function tokEl(el, key, ci, html, pawn) {
   let t = el.querySelector('.tok[data-k="' + key + '"]');
   if (!t) { t = document.createElement('div'); t.className = 'tok'; t.dataset.k = key; el.appendChild(t); }
   t.style.cssText = t.style.cssText.replace(/--pc[^;]*;?|--pcd[^;]*;?/g, '') + ';' + pcStyle(ci);
-  if (t.textContent !== emoji) t.textContent = emoji;
+  const want = pawn && ART_ON ? '<img class="pawn" src="pawn-' + PAWN_COL[ci % 4] + '.webp" alt="" draggable="false" onerror="this.parentNode.classList.remove(\'pw\');this.remove()"><span class="pf">' + html + '</span>' : html;
+  if (t._h !== want) { t._h = want; t.innerHTML = want; t.classList.toggle('pw', !!(pawn && ART_ON)); }
   return t;
 }
 function placeTok(t, x, y) { t.style.left = pct(x); t.style.top = pct(y); t._x = x; t._y = y; }
@@ -1788,7 +1865,9 @@ function glide(t, pts, ms, hop) {
 }
 async function hops(t, pts, per, snd) { for (const p of pts) { if (snd) beep(snd); await glide(t, [p], per, true); } }
 const pname = (V, s) => { const p = V.players[s]; if (!p) return ''; if (p.kind === 'bot' && p.pe >= 0) return T('pe_' + p.pe); return p.name || T('player') + ' ' + (s + 1); };
-const pemoji = (V, s) => { const p = V.players[s]; if (!p) return '❔'; return p.kind === 'bot' && p.pe >= 0 ? PERSONAS[p.pe % PERSONAS.length] : avOf(p.av); };
+const pemojiTxt = (V, s) => { const p = V.players[s]; if (!p) return '❔'; return p.kind === 'bot' && p.pe >= 0 ? PERSONAS[p.pe % PERSONAS.length] : avOf(p.av); };
+// the player's animal as a picture; happy face when they won (or joy=true)
+const pemoji = (V, s, joy) => avHTML(pemojiTxt(V, s), joy || !!(V && V.over && V.winner === s));
 function svg(tag, attrs, inner) { return '<' + tag + ' ' + Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ') + (inner == null ? '/>' : '>' + inner + '</' + tag + '>'); }
 
 /* ================= Snakes & Ladders ================= */
@@ -1799,6 +1878,8 @@ UI.sl = (() => {
     space: { rows: ['#1b2150', '#232b63'], alt: 'rgba(255,255,255,.04)', num: '#cfd8ff', frame: '#0b0f2e', up: 'rocket', down: 'hole', stars: true },
     candy: { rows: ['#ffe0ef', '#ffd0e6', '#fde7f6', '#ffd9f1'], alt: 'rgba(255,255,255,.5)', num: '#8a2c5c', frame: '#c94f8c', up: 'cane', down: 'slide', choco: ['#6b3d1f', '#a2643a', '#e0a06b'] }
   };
+  const P = 64;                                                    // frame around the 1000×1000 board (room for the drawn frame)
+  for (const [k, h] of [['classic', ['green', 'orange', 'purple', 'red']], ['jungle', ['yellow', 'olive', 'orange']]]) TH[k].heads = h;
   const cxy = n => { if (n <= 0) n = 1; const r = ((n - 1) / 10) | 0, k = (n - 1) % 10, c = r % 2 === 0 ? k : 9 - k; return [c * 100 + 50, (9 - r) * 100 + 50]; };
   function bez(a, b, w) {
     const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
@@ -1810,7 +1891,7 @@ UI.sl = (() => {
   function art(cfg) {
     const th = TH[cfg.board] || TH.classic, B = GAMES.sl.BOARDS[cfg.board] || GAMES.sl.BOARDS.classic;
     let g = '<defs><radialGradient id="slHole"><stop offset="0" stop-color="#000"/><stop offset=".55" stop-color="#2a0b4a"/><stop offset=".85" stop-color="#7b3fe4"/><stop offset="1" stop-color="#b98cff" stop-opacity="0"/></radialGradient><linearGradient id="slFlame" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset="1" stop-color="#ff6a2a"/></linearGradient></defs>';
-    g += svg('rect', { x: -14, y: -14, width: 1028, height: 1028, rx: 34, fill: th.frame });
+    g += svg('rect', { x: -P, y: -P, width: 1000 + 2 * P, height: 1000 + 2 * P, rx: 40, fill: th.frame });
     for (let n = 1; n <= 100; n++) {
       const [x, y] = cxy(n), r = ((n - 1) / 10) | 0, col = th.rows[(r + ((n - 1) % 10)) % th.rows.length];
       g += svg('rect', { x: x - 50, y: y - 50, width: 100, height: 100, fill: col });
@@ -1818,8 +1899,8 @@ UI.sl = (() => {
     }
     if (th.stars) { let s = 1; for (let i = 0; i < 90; i++) { s = (s * 16807) % 2147483647; const x = s % 1000; s = (s * 16807) % 2147483647; const y = s % 1000; g += svg('circle', { cx: x, cy: y, r: (i % 5 === 0 ? 2.6 : 1.4), fill: '#fff', opacity: .7 }); } }
     for (let n = 1; n <= 100; n++) { const [x, y] = cxy(n); g += svg('text', { x: x - 42, y: y - 22, 'font-size': 25, 'font-weight': 700, fill: th.num, opacity: .62, 'font-family': 'Rubik,sans-serif' }, n === 100 ? '' : n); }
-    const [fx, fy] = cxy(100); g += svg('text', { x: fx, y: fy + 22, 'text-anchor': 'middle', 'font-size': 62 }, '👑') + svg('text', { x: fx, y: fy - 22, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: th.num }, '100');
-    const [sx, sy] = cxy(1); g += svg('text', { x: sx + 18, y: sy + 38, 'text-anchor': 'middle', 'font-size': 34 }, '🏁');
+    const [fx, fy] = cxy(100); g += svg('text', { x: fx, y: fy - 22, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: th.num }, '100') + svgArt('sl-crown.webp', fx, fy + 12, 74, '👑', 62);
+    const [sx, sy] = cxy(1); g += svgArt('sl-flag.webp', sx + 20, sy + 22, 54, '🏁', 34);
     // up links
     let k = 0;
     for (const f in B.up) {
@@ -1837,12 +1918,12 @@ UI.sl = (() => {
         const steps = Math.max(6, Math.round(len / 22));
         for (let i = 1; i <= steps; i++) { const t = i / steps, w = Math.sin(t * Math.PI * 4) * 16; const x = a[0] + dx * t + (-dy / len) * w, y = a[1] + dy * t + (dx / len) * w; d += ' L' + x.toFixed(1) + ',' + y.toFixed(1); if (i % 2 === 0 && i < steps) leaves += svg('ellipse', { cx: x, cy: y, rx: 14, ry: 7, fill: '#5cb83a', transform: 'rotate(' + (ang + (i % 4 ? 50 : -50)) + ' ' + x + ' ' + y + ')' }); }
         g += svg('path', { d, fill: 'none', stroke: '#1d4f15', 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }) + svg('path', { d, fill: 'none', stroke: th.vine, 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }) + leaves
-          + svg('text', { x: b[0], y: b[1] + 14, 'text-anchor': 'middle', 'font-size': 36 }, '🌸');
+          + svgArt('sl-flower.webp', b[0], b[1], 50, '🌸', 36);
       } else {                                                         // rocket
         g += svg('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#ff9a3c', 'stroke-width': 22, 'stroke-linecap': 'round', opacity: .28 })
           + svg('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#ffe36a', 'stroke-width': 10, 'stroke-dasharray': '12 14', 'stroke-linecap': 'round' })
-          + svg('text', { x: 0, y: 0, 'text-anchor': 'middle', 'font-size': 52, transform: 'translate(' + a[0] + ' ' + (a[1] + 16) + ') rotate(' + (ang + 45) + ')' }, '🚀')
-          + svg('text', { x: b[0], y: b[1] + 16, 'text-anchor': 'middle', 'font-size': 40 }, '🌟');
+          + (ART_ON ? svgArt('sl-rocket.webp', 0, 0, 74, '', 0, 'translate(' + a[0] + ' ' + a[1] + ') rotate(' + (ang + 90) + ')') : svg('text', { x: 0, y: 0, 'text-anchor': 'middle', 'font-size': 52, transform: 'translate(' + a[0] + ' ' + (a[1] + 16) + ') rotate(' + (ang + 45) + ')' }, '🚀'))
+          + svgArt('sl-star.webp', b[0], b[1], 56, '🌟', 40);
       }
       g += '</g>'; k++;
     }
@@ -1852,38 +1933,41 @@ UI.sl = (() => {
       g += '<g class="sl-lnk" data-l="' + f + '">';
       const Bz = linkCurve(+f, B.down[f], k), a = Bz[0], b = Bz[3], d = bpath(Bz);
       if (th.down === 'snake') {
-        const [c1, c2, c3] = th.snakes[k % th.snakes.length];
+        const [c1, c2, c3] = th.snakes[k % th.snakes.length], hd = (th.heads || [])[k % th.snakes.length];
         const head = bpt(Bz, 0), nxt = bpt(Bz, .06), ang = Math.atan2(nxt[1] - head[1], nxt[0] - head[0]) * 180 / Math.PI + 180;
         g += svg('path', { d, fill: 'none', stroke: c2, 'stroke-width': 30, 'stroke-linecap': 'round' }) + svg('path', { d, fill: 'none', stroke: c1, 'stroke-width': 22, 'stroke-linecap': 'round' })
           + svg('path', { d, fill: 'none', stroke: c3, 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-dasharray': '14 16', opacity: .9 })
           + '<g transform="translate(' + head[0] + ' ' + head[1] + ') rotate(' + ang + ')">' + svg('path', { d: 'M24,0 l18,-5 m-18,5 l18,5', stroke: '#e5303c', 'stroke-width': 4, 'stroke-linecap': 'round', fill: 'none' }) + svg('ellipse', { cx: 0, cy: 0, rx: 30, ry: 24, fill: c1, stroke: c2, 'stroke-width': 4 })
-          + svg('circle', { cx: 8, cy: -10, r: 8, fill: '#fff' }) + svg('circle', { cx: 8, cy: 10, r: 8, fill: '#fff' }) + svg('circle', { cx: 11, cy: -10, r: 4, fill: '#111' }) + svg('circle', { cx: 11, cy: 10, r: 4, fill: '#111' }) + '</g>';
+          + svg('circle', { cx: 8, cy: -10, r: 8, fill: '#fff' }) + svg('circle', { cx: 8, cy: 10, r: 8, fill: '#fff' }) + svg('circle', { cx: 11, cy: -10, r: 4, fill: '#111' }) + svg('circle', { cx: 11, cy: 10, r: 4, fill: '#111' })
+          + (ART_ON && hd ? svgArt('sl-head-' + hd + '.webp', 8, 0, 104, '', 0, Math.cos(ang * Math.PI / 180) < 0 ? 'scale(1 -1)' : '') : '') + '</g>';
       } else if (th.down === 'slide') {
         const [c1, c2, c3] = th.choco;
         g += svg('path', { d, fill: 'none', stroke: c1, 'stroke-width': 36, 'stroke-linecap': 'round' }) + svg('path', { d, fill: 'none', stroke: c2, 'stroke-width': 24, 'stroke-linecap': 'round' }) + svg('path', { d, fill: 'none', stroke: c3, 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-dasharray': '2 22' })
-          + svg('text', { x: a[0], y: a[1] + 16, 'text-anchor': 'middle', 'font-size': 46 }, '🍫');
+          + svgArt('sl-choco.webp', a[0], a[1], 70, '🍫', 46);
       } else {                                                         // black hole + comet tail
         g += svg('path', { d, fill: 'none', stroke: '#b98cff', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': '2 16', opacity: .85 })
           + svg('circle', { cx: a[0], cy: a[1], r: 48, fill: '#9b5de5', opacity: .45 }) + svg('circle', { cx: a[0], cy: a[1], r: 40, fill: 'url(#slHole)' })
           + svg('circle', { cx: a[0], cy: a[1], r: 40, fill: 'none', stroke: '#f0dcff', 'stroke-width': 5 }) + svg('circle', { cx: a[0], cy: a[1], r: 26, fill: 'none', stroke: '#d6b8ff', 'stroke-width': 4, 'stroke-dasharray': '10 8' })
+          + (ART_ON ? '<g class="sl-spin" style="transform-origin:' + a[0] + 'px ' + a[1] + 'px">' + svgArt('sl-hole.webp', a[0], a[1], 104, '', 0) + '</g>' : '')
           + svg('text', { x: b[0], y: b[1] + 14, 'text-anchor': 'middle', 'font-size': 34 }, '☄️');
       }
       g += '</g>'; k++;
     }
-    return '<svg class="base" viewBox="-14 -14 1028 1028" aria-hidden="true">' + g + '</svg>';
+    if (ART_ON) g += '<image href="sl-frame-' + (TH[cfg.board] ? cfg.board : 'classic') + '.webp" x="' + (-P) + '" y="' + (-P) + '" width="' + (1000 + 2 * P) + '" height="' + (1000 + 2 * P) + '" preserveAspectRatio="none"/>';
+    return '<svg class="base" viewBox="' + (-P) + ' ' + (-P) + ' ' + (1000 + 2 * P) + ' ' + (1000 + 2 * P) + '" aria-hidden="true">' + g + '</svg>';
   }
   const SPOT = [[0, 0], [-.022, -.022], [.022, .022], [-.022, .022], [.022, -.022]];
   function spots(pos, s) { const here = []; pos.forEach((p, i) => { if (p === pos[s]) here.push(i); }); if (here.length === 1) return [0, 0]; const k = here.indexOf(s) + 1; return SPOT[k] || [0, 0]; }
-  const frac = (n, off) => { const [x, y] = cxy(n); return [(x + 14) / 1028 + (off ? off[0] : 0), (y + 14) / 1028 + (off ? off[1] : 0)]; };
+  const frac = (n, off) => { const [x, y] = cxy(n); return [(x + P) / (1000 + 2 * P) + (off ? off[0] : 0), (y + P) / (1000 + 2 * P) + (off ? off[1] : 0)]; };
   return {
     aspect: () => 1, art,
     color: (V, s) => s,
     chip: (V, s) => '<span class="ltr">' + (V.pos[s] || 0) + '</span>',
     mount(el, V) { el.innerHTML = art(V.cfg); el.style.setProperty('--ts', '0'); el._pos = V.pos.slice(); this.size(el); this.draw(el, V); },
-    size(el) { el.style.setProperty('--ts', (el.clientWidth * 0.072) + 'px'); },
+    size(el) { el.style.setProperty('--ts', (el.clientWidth * 0.072 * 1028 / (1000 + 2 * P)) + 'px'); },
     draw(el, V) {
       el._pos = V.pos.slice();
-      V.players.forEach((p, s) => { const t = tokEl(el, 's' + s, this.color(V, s), pemoji(V, s)); const [x, y] = frac(el._pos[s], spots(el._pos, s)); placeTok(t, x, y); t.classList.toggle('mv', !!(this._cx && this._cx.mine && V.turn === s && !V.over)); t.classList.toggle('cur', V.turn === s && !V.over); });
+      V.players.forEach((p, s) => { const t = tokEl(el, 's' + s, this.color(V, s), pemoji(V, s, el._joyS === s && Date.now() < el._joy));  const [x, y] = frac(el._pos[s], spots(el._pos, s)); placeTok(t, x, y); t.classList.toggle('mv', !!(this._cx && this._cx.mine && V.turn === s && !V.over)); t.classList.toggle('cur', V.turn === s && !V.over); });
     },
     async anim(el, V, evs, cx) {
       for (const e of evs) {
@@ -1900,13 +1984,14 @@ UI.sl = (() => {
           if (lk) lk.classList.add('lit');
           t.classList.remove('cur'); if (eat) t.classList.add('swallow');
           let pts;
-          if (e.e === 'down') { const keys = Object.keys(B.down), k = keys.indexOf(String(e.from)), Bz = linkCurve(e.from, e.to, k); pts = []; for (let i = 1; i <= 24; i++) { const p = bpt(Bz, i / 24); pts.push([(p[0] + 14) / 1028, (p[1] + 14) / 1028]); } }
+          if (e.e === 'down') { const keys = Object.keys(B.down), k = keys.indexOf(String(e.from)), Bz = linkCurve(e.from, e.to, k); pts = []; for (let i = 1; i <= 24; i++) { const p = bpt(Bz, i / 24); pts.push([(p[0] + P) / (1000 + 2 * P), (p[1] + P) / (1000 + 2 * P)]); } }
           else { const a = frac(e.from), b = frac(e.to); pts = []; for (let i = 1; i <= 12; i++) pts.push([a[0] + (b[0] - a[0]) * i / 12, a[1] + (b[1] - a[1]) * i / 12]); }
           await glide(t, pts, (e.e === 'up' ? 900 : 1100) * SPEED());
           if (lk) lk.classList.remove('lit');
           if (eat) { t.classList.remove('swallow'); t.classList.add('popout'); beep('place'); setTimeout(() => t.classList.remove('popout'), 500); }
           el._pos[e.s] = e.to;
           bubbleSeat(e.s, e.e === 'up' ? '🎉' : '😱', 'big', 1600);
+          if (e.e === 'up') { el._joyS = e.s; el._joy = Date.now() + 1500; tokEl(el, 's' + e.s, this.color(V, e.s), pemoji(V, e.s, true)); const s0 = e.s, ci = this.color(V, e.s); setTimeout(() => { if (el.isConnected && !(V.over && V.winner === s0)) tokEl(el, 's' + s0, ci, pemoji(V, s0)); }, 1550); }
         } else if (e.e === 'stay') { toastBoard(T('sl_exact', { n: iso(e.need) })); beep('miss'); await wait(500 * SPEED()); }
         else if (e.e === 'again') { showBanner('🎲 ' + T('again'), this.color(V, e.s)); await wait(500 * SPEED()); }
       }
@@ -1950,7 +2035,7 @@ UI.ludo = (() => {
     LANE.forEach((cells, c) => cells.forEach(([x, y]) => { g += svg('rect', { x: x + .04, y: y + .04, width: .92, height: .92, rx: .12, fill: C(c), opacity: .9 }); }));
     // centre: four triangles
     g += svg('polygon', { points: '6,6 6,9 7.5,7.5', fill: C(0) }) + svg('polygon', { points: '6,6 9,6 7.5,7.5', fill: C(1) }) + svg('polygon', { points: '9,6 9,9 7.5,7.5', fill: C(2) }) + svg('polygon', { points: '6,9 9,9 7.5,7.5', fill: C(3) });
-    g += svg('text', { x: 7.5, y: 7.86, 'text-anchor': 'middle', 'font-size': .95 }, '🏠');
+    g += svgArt('sl-crown.webp', 7.5, 7.5, 1.25, '🏠', .95);
     // arrows into each lane
     [[0.5, 7.5, 0], [7.5, 0.5, 90], [14.5, 7.5, 180], [7.5, 14.5, 270]].forEach(([x, y, r], c) => { g += '<g transform="translate(' + x + ' ' + y + ') rotate(' + r + ')">' + svg('path', { d: 'M-.25,-.22 L.22,0 L-.25,.22 Z', fill: C(c) }) + '</g>'; });
     return '<svg class="base" viewBox="-.15 -.15 15.3 15.3" aria-hidden="true">' + g + '</svg><svg class="base ld-marks" viewBox="-.15 -.15 15.3 15.3" style="pointer-events:none;z-index:6"></svg>';
@@ -1973,7 +2058,7 @@ UI.ludo = (() => {
     draw(el, V, cx) {
       cx = cx || this._cx || {}; el._tok = V.tok.map(a => a.slice());
       const L = layout(V, s => el._tok[s]), mv = cx.mine && V.phase === 'move' ? new Set(GAMES.ludo.moves(V, V.turn, V.die).map(m => m.t)) : new Set();
-      V.players.forEach((p, s) => el._tok[s].forEach((pr, t) => { const tk = tokEl(el, s + ':' + t, V.col[s], pemoji(V, s)); placeTok(tk, ...L[s + ':' + t]); tk.classList.toggle('mv', s === V.turn && mv.has(t)); tk.classList.toggle('cur', s === V.turn && !V.over && pr >= 0 && pr < 56 && !mv.size); tk.classList.toggle('hintt', cx.hint && cx.hint.t === t && s === V.turn); }));
+      V.players.forEach((p, s) => el._tok[s].forEach((pr, t) => { const tk = tokEl(el, s + ':' + t, V.col[s], pemoji(V, s), true); placeTok(tk, ...L[s + ':' + t]); tk.classList.toggle('mv', s === V.turn && mv.has(t)); tk.classList.toggle('cur', s === V.turn && !V.over && pr >= 0 && pr < 56 && !mv.size); tk.classList.toggle('hintt', cx.hint && cx.hint.t === t && s === V.turn); }));
       // destination marks for my movable tokens
       const mk = el.querySelector('.ld-marks'); let h = '';
       if (mv.size) for (const m of GAMES.ludo.moves(V, V.turn, V.die)) { const [x, y] = cellOf(V.col[V.turn], m.to, m.t); h += svg('circle', { cx: x, cy: y, r: .34, fill: 'none', stroke: PC(V.col[V.turn]), 'stroke-width': .09, 'stroke-dasharray': '.12 .1' }); }
@@ -1986,14 +2071,14 @@ UI.ludo = (() => {
         else if (e.e === 'nomove') { toastBoard(GAMES.ludo.HOME && V.tok[e.s].every(p => p < 0) ? T('ld_need6') : T('ld_nomove')); await wait(650 * SPEED()); }
         else if (e.e === 'again') { showBanner('🎲 ' + T('again'), V.col[e.s]); await wait(450 * SPEED()); }
         else if (e.e === 'move') {
-          const tk = tokEl(el, e.s + ':' + e.t, V.col[e.s], pemoji(V, e.s)), c = V.col[e.s];
+          const tk = tokEl(el, e.s + ':' + e.t, V.col[e.s], pemoji(V, e.s), true), c = V.col[e.s];
           let pts = [];
           if (e.from < 0) pts = [F(cellOf(c, 0, e.t))];
           else for (let p = e.from + 1; p <= e.to; p++) pts.push(F(cellOf(c, p, e.t)));
           await hops(tk, pts, 170 * SPEED(), 'hop');
           el._tok[e.s][e.t] = e.to;
         } else if (e.e === 'cap') {
-          const tk = tokEl(el, e.s + ':' + e.t, V.col[e.s], pemoji(V, e.s)), c = V.col[e.s];
+          const tk = tokEl(el, e.s + ':' + e.t, V.col[e.s], pemoji(V, e.s), true), c = V.col[e.s];
           beep('cap'); bubbleSeat(e.by, '💥', 'big', 1500); setTimeout(() => bubbleSeat(e.s, '😭', 'big', 1500), 350);
           const a = [tk._x, tk._y], b = F(cellOf(c, -1, e.t)), mid = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - .12];
           await glide(tk, [mid, b], 650 * SPEED());
@@ -2040,7 +2125,7 @@ UI.c4 = (() => {
     if (!d) { d = document.createElement('div'); d.className = 'c4-disc'; d.dataset.x = c * Hc + r; el.appendChild(d); }
     const [x, y, w] = discPos(el, c, r), ci = UI.c4.color(V, s);
     d.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + w + 'px;' + pcStyle(ci);
-    d.textContent = pemoji(V, s); return d;
+    const hm = pemoji(V, s); if (d._h !== hm) { d._h = hm; d.innerHTML = hm; } return d;
   }
   return {
     aspect: () => Wc / (Hc + TOP),
@@ -2146,14 +2231,14 @@ UI.mem = (() => {
       el.querySelectorAll('.mm-card').forEach(d => {
         const i = +d.dataset.i, v = V.cards[i], up = v != null, own = V.own[i];
         d.classList.toggle('up', up); d.classList.remove('miss');
-        const f = d.querySelector('.mm-f'); if (up && f.textContent !== sym(V, v)) f.textContent = sym(V, v);
+        const f = d.querySelector('.mm-f'); if (up && f.dataset.v !== V.cfg.set + v) { f.dataset.v = V.cfg.set + v; f.innerHTML = memHTML(V.cfg.set, v); }
         f.style.setProperty('--oc', own >= 0 ? PC(own) : '#fff');
       });
     },
     async anim(el, V, evs) {
       for (const e of evs) {
         const card = i => el.querySelector('.mm-card[data-i="' + i + '"]');
-        if (e.e === 'flip') { const d = card(e.i); if (d && e.v != null) { d.querySelector('.mm-f').textContent = sym(V, e.v); d.querySelector('.mm-f').style.setProperty('--oc', '#fff'); d.classList.add('up'); } beep('flip'); await wait(380 * SPEED()); }
+        if (e.e === 'flip') { const d = card(e.i); if (d && e.v != null) { const f = d.querySelector('.mm-f'); if (f.dataset.v !== V.cfg.set + e.v) { f.dataset.v = V.cfg.set + e.v; f.innerHTML = memHTML(V.cfg.set, e.v); } d.querySelector('.mm-f').style.setProperty('--oc', '#fff'); d.classList.add('up'); } beep('flip'); await wait(380 * SPEED()); }
         else if (e.e === 'match') { e.cards.forEach(i => { const d = card(i); if (d) { d.classList.add('got'); d.querySelector('.mm-f').style.setProperty('--oc', PC(e.s)); setTimeout(() => d.classList.remove('got'), 700); } }); beep('match'); bubbleSeat(e.s, '✨', 'big', 1200); await wait(450 * SPEED()); }
         else if (e.e === 'miss') { e.cards.forEach(i => { const d = card(i); if (d) d.classList.add('miss'); }); beep('miss'); await wait(300 * SPEED()); }
         else if (e.e === 'hide') { e.cards.forEach(i => { const d = card(i); if (d) d.classList.remove('up', 'miss'); }); await wait(360 * SPEED()); }
@@ -2176,7 +2261,7 @@ UI.dots = (() => {
   function art(V) { const n = V.cfg.size; return '<svg class="base" viewBox="' + (-M) + ' ' + (-M) + ' ' + (n + 2 * M) + ' ' + (n + 2 * M) + '" aria-hidden="true">' + svg('rect', { x: -M, y: -M, width: n + 2 * M, height: n + 2 * M, rx: .3, fill: 'var(--bd)' }) + '<g class="dt-layer"></g></svg>'; }
   function layer(el, V, cx, freshL, freshB) {
     const g = GAMES.dots.G0(V.cfg.size), n = V.cfg.size; let h = '';
-    V.box.forEach((o, b) => { if (o < 0) return; const r = (b / n) | 0, c = b % n; h += '<g' + (freshB && freshB.includes(b) ? ' style="transform-origin:' + (c + .5) + 'px ' + (r + .5) + 'px;animation:pop .35s"' : '') + '>' + svg('rect', { x: c + .07, y: r + .07, width: .86, height: .86, rx: .12, fill: PC(o), opacity: .82 }) + svg('text', { x: c + .5, y: r + .66, 'text-anchor': 'middle', 'font-size': .46 }, pemoji(V, o)) + '</g>'; });
+    V.box.forEach((o, b) => { if (o < 0) return; const r = (b / n) | 0, c = b % n; h += '<g' + (freshB && freshB.includes(b) ? ' style="transform-origin:' + (c + .5) + 'px ' + (r + .5) + 'px;animation:pop .35s"' : '') + '>' + svg('rect', { x: c + .07, y: r + .07, width: .86, height: .86, rx: .12, fill: PC(o), opacity: .82 }) + (ART_ON ? svgArt('av-' + EMO2AV[pemojiTxt(V, o)] + (V.over && V.winner === o ? '-joy' : '') + '.webp', c + .5, r + .5, .74, '', 0) : svg('text', { x: c + .5, y: r + .66, 'text-anchor': 'middle', 'font-size': .46 }, pemojiTxt(V, o))) + '</g>'; });
     for (let l = 0; l < g.NL; l++) {
       const [x1, y1, x2, y2] = seg(g, l), o = V.lines[l];
       if (o < 0) h += svg('line', { x1, y1, x2, y2, stroke: 'var(--bdLine)', 'stroke-width': .05, 'stroke-dasharray': '.08 .1', 'stroke-linecap': 'round' });
@@ -2863,7 +2948,7 @@ function lobbyList(onlyOnline) {
   return hum.filter(x => !onlyOnline || x.online).concat(bots);
 }
 const lobbyName = x => x.kind === 'bot' ? T('pe_' + x.pe) : x.name;
-const lobbyEmoji = x => x.kind === 'bot' ? PERSONAS[x.pe % PERSONAS.length] : avOf(x.av);
+const lobbyEmoji = x => avHTML(x.kind === 'bot' ? PERSONAS[x.pe % PERSONAS.length] : avOf(x.av));
 function lobbyChanged() {
   if (!hostSide() || !LINK) return;
   NET.lobby = { list: lobbyList(), game: NET.game, cfg: netCfg(), playing: !!(CUR && CUR.mode === 'net' && CUR.G && !CUR.G.over) };
@@ -3047,7 +3132,7 @@ const TILE_ART = {
 };
 function renderHome() {
   $('#verLbl').textContent = 'v' + APP_VERSION;
-  $('#gameGrid').innerHTML = GAME_IDS.map(g => '<button class="gtile gt-' + g + '" data-g="' + g + '"><span class="np ltr">' + (GAMES[g].minP === GAMES[g].maxP ? GAMES[g].maxP : GAMES[g].minP + '–' + GAMES[g].maxP) + ' 👥</span><span class="art">' + TILE_ART[g] + '</span><b>' + esc(gname(g)) + '</b></button>').join('');
+  $('#gameGrid').innerHTML = GAME_IDS.map(g => '<button class="gtile gt-' + g + '" data-g="' + g + '"><span class="np ltr">' + (GAMES[g].minP === GAMES[g].maxP ? GAMES[g].maxP : GAMES[g].minP + '–' + GAMES[g].maxP) + ' 👥</span><span class="art">' + (ART_ON ? '<img class="tl" src="tile-' + g + '.webp" alt="" draggable="false" data-tg="' + g + '" onerror="this.outerHTML=TILE_ART[this.dataset.tg]">' : TILE_ART[g]) + '</span><b>' + esc(gname(g)) + '</b></button>').join('');
   $('#gameGrid').querySelectorAll('[data-g]').forEach(b => b.onclick = () => openSetup(b.dataset.g));
   const box = $('#resumeBox'); let h = '';
   const g = LS.get('game', null);
@@ -3068,7 +3153,7 @@ function renderHome() {
 /* ---------- small helpers ---------- */
 function segHTML(id, opts, cur) { return '<div class="seg" data-seg="' + id + '">' + opts.map(o => '<button data-v="' + o[0] + '"' + (String(o[0]) === String(cur) ? ' class="on"' : '') + '>' + o[1] + '</button>').join('') + '</div>'; }
 function bindSeg(root, id, cb) { const s = root.querySelector('[data-seg="' + id + '"]'); if (!s) return; s.onclick = e => { const b = e.target.closest('button'); if (!b) return; s.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset.v); }; }
-const avGrid = sel => AVATARS.map((a, i) => '<button data-av="' + (i + 1) + '"' + ((sel || myAv()) === i + 1 ? ' class="on"' : '') + '>' + a + '</button>').join('');
+const avGrid = sel => AVATARS.map((a, i) => '<button data-av="' + (i + 1) + '"' + ((sel || myAv()) === i + 1 ? ' class="on"' : '') + '>' + avHTML(a) + '</button>').join('');
 function bindAvGrid(el, cb) { el.onclick = e => { const b = e.target.closest('[data-av]'); if (!b) return; if (cb) cb(+b.dataset.av); else { ST.avatar = +b.dataset.av; saveST(); } el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); }; }
 function pickAvatar(cur, cb) {
   const o = overlay('<h2>' + T('myAnimal') + '</h2><div class="avs" id="pa">' + avGrid(cur) + '</div><button class="btn wide" style="margin-top:12px" data-x>' + T('close') + '</button>');
@@ -3084,7 +3169,7 @@ function optionsEditor(el, game, cfg, n, onChange) {
     if (game === 'sl') h += '<label class="f">' + T('opt_board') + '<div class="vars" id="oVars">' + Object.keys(GAMES.sl.BOARDS).map(b => '<button data-b="' + b + '"' + (cfg.board === b ? ' class="on"' : '') + '>' + UI.sl.art({ board: b }).replace('class="base"', '') + esc(T('slb_' + b)) + '</button>').join('') + '</div></label>';
     if (game === 'ludo') h += '<label class="f">' + T('opt_tokens') + segHTML('tokens', [[4, '4 · ' + T('opt_full')], [2, '2 · ' + T('opt_quick')]], cfg.tokens) + '</label>';
     if (game === 'ttt') h += '<label class="f">' + T('opt_board') + segHTML('size', [[3, '3×3'], [6, '6×6 · ' + T('inRow', { n: 4 })], [9, '9×9 · ' + T('inRow', { n: 5 })]], cfg.size) + '</label>';
-    if (game === 'mem') h += '<label class="f">' + T('opt_cards') + segHTML('pairs', [[6, '12'], [8, '16'], [10, '20'], [12, '24']], cfg.pairs) + '</label><label class="f" style="margin-top:8px">' + T('opt_pics') + segHTML('set', Object.keys(MEM_SETS).map(k => [k, MEM_SETS[k][0] + ' ' + T('set_' + k)]), cfg.set) + '</label>';
+    if (game === 'mem') h += '<label class="f">' + T('opt_cards') + segHTML('pairs', [[6, '12'], [8, '16'], [10, '20'], [12, '24']], cfg.pairs) + '</label><label class="f" style="margin-top:8px">' + T('opt_pics') + segHTML('set', Object.keys(MEM_SETS).map(k => [k, memHTML(k, 0) + ' ' + T('set_' + k)]), cfg.set) + '</label>';
     if (game === 'dots') h += '<label class="f">' + T('opt_board') + segHTML('size', [[3, '3×3'], [4, '4×4'], [5, '5×5']], cfg.size) + '</label>';
     h += '<label class="f" style="margin-top:8px">' + T('opt_first') + segHTML('firstMode', [['rand', '🎲 ' + T('first_rand')], ['p1', '1️⃣ ' + T('first_p1')]], cfg.firstMode || 'rand') + '</label>';
     if (SWITCHES[game]) h += '<h3 style="margin-top:12px">🏠 ' + T('houseRules') + '</h3>' + SWITCHES[game].map(([k, t]) => '<div class="sw"><span>' + T(t) + '<small class="muted">' + T(t + 'D') + '</small></span><input type="checkbox" data-r="' + k + '"' + (cfg[k] ? ' checked' : '') + '></div>').join('');
@@ -3131,7 +3216,7 @@ function openSetup(game) {
     h += '<div class="card"><h3>👥 ' + T('players') + '</h3>' + (E.minP !== E.maxP ? '<div class="cnt"><button data-n="-1" aria-label="-">−</button><b class="ltr">' + S.n + '</b><button data-n="1" aria-label="+">+</button></div>' : '') + '<div class="seats" style="margin-top:10px">'
       + S.seats.map((x, i) => {
         const ci = game === 'ludo' ? GAMES.ludo.colorsFor(S.n)[i] : game === 'c4' ? (i ? 2 : 0) : game === 'ttt' ? (i ? 0 : 3) : i;
-        const em = x.kind === 'bot' ? PERSONAS[x.pe % PERSONAS.length] : avOf(x.av);
+        const em = avHTML(x.kind === 'bot' ? PERSONAS[x.pe % PERSONAS.length] : avOf(x.av));
         return '<div class="seat" style="--sc:' + PC(ci) + '"><button class="avb" data-av="' + i + '">' + em + '</button>'
           + (x.kind === 'bot' ? '<b>' + esc(T('pe_' + x.pe)) + '<small class="muted" style="display:block;font-weight:400;font-size:12px">' + esc(T('ps_' + x.pe)) + '</small></b>' : '<input data-nm="' + i + '" maxlength="16" placeholder="' + esc(T('player') + ' ' + (i + 1)) + '" value="' + esc(i === 0 ? ST.name : (x.name || '')) + '">')
           + (i === 0 ? '' : '<button class="kind" data-k="' + i + '" aria-label="human / computer">' + (x.kind === 'bot' ? '🤖' : '👤') + '</button>') + '</div>';
@@ -3276,7 +3361,7 @@ function openGuide() {
 
 /* ---- init.js ---- */
 (function init() {
-  applyLook(); applyLang(); renderHome();
+  applyLook(); applyLang(); artProbe(() => { if (SCREEN === 'home') renderHome(); }); renderHome();
   $('#mNet').onclick = () => { show('online'); renderNet(); };
   $('#tRules').onclick = () => openRules(null, false);
   $('#tStats').onclick = () => { renderStats(); show('stats'); };
