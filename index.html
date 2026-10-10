@@ -112,6 +112,8 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mu
 .gt-ttt{background:linear-gradient(160deg,#9b5de5,#6a33b8)}
 .gt-mem{background:linear-gradient(160deg,#ff9f43,#d8701a)}
 .gt-dots{background:linear-gradient(160deg,#16b6a8,#0b7d73)}
+.gt-bs{background:linear-gradient(160deg,#3d8bff,#1d4fb8)}
+.gt-dom{background:linear-gradient(160deg,#8b5cf6,#5b2fc2)}
 .modes{display:grid;gap:12px}
 .mode{display:flex;align-items:center;gap:14px;text-align:start;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;min-height:72px}
 .mode .ic{font-size:30px;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:var(--panel2);flex:none}
@@ -354,6 +356,45 @@ html.art .mm-b::after{content:none}
 .sl-spin{animation:slSpin 9s linear infinite}
 @keyframes slSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.sl-spin{animation:none}}
+
+/* ---------------- 1.3 Battleship ---------------- */
+.bd-bs .bs-g{position:absolute;transition:left .35s ease,top .35s ease,width .35s ease,height .35s ease;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.3);touch-action:none}
+.bd-bs .bs-g svg{width:100%;height:100%;display:block}
+.bd-bs .bs-g:not(.big){opacity:.92}
+.bd-bs .bs-g.aim.big{box-shadow:0 0 0 3px #ffeb3b,0 4px 14px rgba(0,0,0,.3)}
+.bd-bs .bs-tag{position:absolute;top:4px;inset-inline-start:6px;font-size:18px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5));pointer-events:none}
+.bd-bs .bs-g:not(.big) .bs-tag{font-size:14px}
+.bd-bs .bs-p{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:6px 4px}
+.bs-row{display:flex;align-items:center;gap:8px}
+.bs-row .em{font-size:22px;line-height:1;flex:none}
+.bs-row .em img.ai{width:32px;height:32px}
+.bs-fl{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.bs-mini{display:inline-block;height:12px;border-radius:6px;background:var(--sc);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+.bs-mini.gone{background:#59606b;opacity:.55;position:relative}
+.bs-mini.gone::after{content:'';position:absolute;left:-2px;right:-2px;top:5px;height:2px;background:#e53935;transform:rotate(-8deg)}
+.bs-ship.sel rect:first-child,.bs-ship.ok rect:first-child{stroke:#ffeb3b;stroke-width:.12}
+.bs-ship.bad rect:first-child{stroke:#ff1744;stroke-width:.14;opacity:.75}
+.bs-ship.ok,.bs-ship.bad{filter:drop-shadow(0 .1px .15px rgba(0,0,0,.6))}
+.bs-pop{animation:bsPop .35s cubic-bezier(.2,1.7,.4,1)}
+@keyframes bsPop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.bs-bomb{position:absolute;margin-left:-0px;margin-top:-0px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#666,#111);box-shadow:0 0 0 3px rgba(255,255,255,.6);z-index:9;pointer-events:none;animation:bsDrop .42s ease-in forwards}
+@keyframes bsDrop{0%{transform:translate(-50%,-50%) scale(3.2);opacity:.15}100%{transform:translate(-50%,-50%) scale(.55);opacity:1}}
+.bs-g.shake{animation:bsShake .4s}
+@keyframes bsShake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+/* ---------------- 1.3 Dominoes ---------------- */
+.bd-dom .dm-t.hd.dim{opacity:.42}
+.bd-dom .dm-t.ch{transform-box:fill-box;transform-origin:center}
+.bd-dom .dm-end circle{animation:dmGlow 1s ease-in-out infinite}
+@keyframes dmGlow{50%{opacity:.45}}
+.dm-chip{display:inline-block;width:8px;height:14px;border-radius:2px;background:#fffdf6;border:1px solid rgba(0,0,0,.5);vertical-align:-2px;margin-inline-end:2px;box-shadow:inset 0 6px 0 -5px rgba(0,0,0,.5)}
+
+/* ---------------- 1.3 pass-the-phone curtain ---------------- */
+.ov.curtain{background:var(--bg);backdrop-filter:none}
+.ov.curtain .box{background:transparent;box-shadow:none;border:0;text-align:center}
+.curtain-in .big{font-size:96px;line-height:1.1;margin-top:20px}
+.curtain-in .big img.ai{width:150px;height:150px}
+.curtain-in h2{font-size:28px;color:var(--pc)}
 
 </style>
 </head>
@@ -1481,6 +1522,292 @@ GAMES.dots = (() => {
   return { id: 'dots', minP: 2, maxP: 4, DEF, G0, newGame, apply, legal, ai, levels: 3 };
 })();
 
+/* ---- g_bs.js ---- */
+/* =====================================================================
+   Battleship ("צוללות") — 2 players. First each player places a fleet
+   (one after the other), then they take turns firing at the other's sea.
+   Hit → (house rule) fire again. Ships may not touch (house rule), so when a
+   ship sinks the water around it is marked for everyone.
+   Hidden information: a player's ships are in the view only for that player
+   (and for everyone once sunk / when the game is over).
+   The computer never looks at hidden ships: it reads only the public shots grid.
+   ===================================================================== */
+GAMES.bs = (() => {
+  const DEF = { size: 10, again: true, touch: false };
+  const SIZES = [6, 8, 10];
+  const FLEETS = { 10: [5, 4, 3, 3, 2], 8: [4, 3, 3, 2], 6: [3, 2, 2] };
+  // shots grid values (shots[s] = what s knows about the other sea)
+  const UNK = 0, MISS = 1, HIT = 2, SUNK = 3, WATER = 4;
+  function cellsOf(n, x, y, h, len) {
+    const out = [];
+    for (let k = 0; k < len; k++) { const cx = x + (h ? k : 0), cy = y + (h ? 0 : k); if (cx < 0 || cy < 0 || cx >= n || cy >= n) return null; out.push(cy * n + cx); }
+    return out;
+  }
+  const around = (n, i) => { const x = i % n, y = (i / n) | 0, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const a = x + dx, b = y + dy; if (a >= 0 && b >= 0 && a < n && b < n) out.push(b * n + a); } return out; };
+  // ships = [[x, y, h], …] in fleet order → array of cell lists, or null if not allowed
+  function check(n, fleet, ships, touch) {
+    if (!Array.isArray(ships) || ships.length !== fleet.length) return null;
+    const own = new Map(), out = [];
+    for (let k = 0; k < fleet.length; k++) {
+      const s = ships[k]; if (!Array.isArray(s)) return null;
+      const c = cellsOf(n, s[0] | 0, s[1] | 0, !!s[2], fleet[k]); if (!c) return null;
+      for (const i of c) { if (own.has(i)) return null; }
+      if (!touch) for (const i of c) for (const j of around(n, i)) if (own.has(j)) return null;
+      c.forEach(i => own.set(i, k)); out.push(c);
+    }
+    return out;
+  }
+  // a random legal fleet; rnd() → [0,1)
+  function randomFleet(n, fleet, touch, rnd) {
+    for (let tries = 0; tries < 400; tries++) {
+      const ships = []; let ok = true;
+      for (let k = 0; k < fleet.length && ok; k++) {
+        let placed = false;
+        for (let t = 0; t < 200 && !placed; t++) {
+          const h = rnd() < 0.5 ? 1 : 0, x = Math.floor(rnd() * (h ? n - fleet[k] + 1 : n)), y = Math.floor(rnd() * (h ? n : n - fleet[k] + 1));
+          ships.push([x, y, h]);
+          if (check(n, fleet.slice(0, k + 1), ships, touch)) placed = true; else ships.pop();
+        }
+        if (!placed) ok = false;
+      }
+      if (ok) return ships;
+    }
+    return null;
+  }
+  function newGame(players, cfg, seed) {
+    cfg = Object.assign({}, DEF, cfg); if (!SIZES.includes(+cfg.size)) cfg.size = 10; cfg.size = +cfg.size;
+    const G = FC.base('bs', players, cfg, seed), n = cfg.size;
+    G.fleet = FLEETS[n].slice(); G.phase = 'place'; G.first0 = G.turn;
+    G.ships = players.map(() => null);                       // [{ c: [cells], hit, sunk }]
+    G.shots = players.map(() => Array(n * n).fill(UNK));     // what each player knows about the other sea
+    G.sunk = players.map(() => []);                          // indexes of each player's own ships that were sunk
+    G.fired = players.map(() => 0); G.hits = players.map(() => 0);
+    return G;
+  }
+  const opp = (G, s) => (s + 1) % G.players.length;
+  function apply(G, s, a) {
+    if (G.over || s !== G.turn || !a) return { ok: false };
+    const n = G.cfg.size;
+    if (a.place) {
+      if (G.phase !== 'place' || G.ships[s]) return { ok: false };
+      const cells = check(n, G.fleet, a.place, G.cfg.touch); if (!cells) return { ok: false };
+      G.ships[s] = cells.map(c => ({ c, hit: 0, sunk: false }));
+      FC.ev(G, { e: 'place', s });
+      const o = opp(G, s);
+      if (G.ships[o]) { G.phase = 'fire'; G.turn = G.first0; FC.ev(G, { e: 'fire', s: G.turn }); }
+      else G.turn = o;
+      return { ok: true };
+    }
+    if (a.f == null || G.phase !== 'fire') return { ok: false };
+    const i = a.f | 0, S = G.shots[s], o = opp(G, s);
+    if (i < 0 || i >= n * n || S[i] !== UNK) return { ok: false };
+    G.fired[s]++;
+    const k = G.ships[o].findIndex(sh => sh.c.includes(i));
+    if (k < 0) { S[i] = MISS; FC.ev(G, { e: 'shot', s, i, r: 'miss' }); G.turn = o; return { ok: true }; }
+    const sh = G.ships[o][k]; sh.hit++; S[i] = HIT; G.hits[s]++;
+    if (sh.hit >= sh.c.length) {
+      sh.sunk = true; sh.c.forEach(j => { S[j] = SUNK; }); G.sunk[o].push(k);
+      const water = [];
+      if (!G.cfg.touch) sh.c.forEach(j => around(n, j).forEach(w => { if (S[w] === UNK) { S[w] = WATER; water.push(w); } }));
+      FC.ev(G, { e: 'shot', s, i, r: 'sunk', k, cells: sh.c.slice(), water });
+      if (G.ships[o].every(x => x.sunk)) { G.over = true; G.winner = s; FC.ev(G, { e: 'win', s }); return { ok: true }; }
+    } else FC.ev(G, { e: 'shot', s, i, r: 'hit' });
+    if (!G.cfg.again) G.turn = o;
+    else FC.ev(G, { e: 'again', s });
+    return { ok: true };
+  }
+  // seat: the viewer (-1 nobody, -2 everybody)
+  function view(G, seat) {
+    const V = FC.pub(G, ['ships']), all = seat === -2 || G.over;
+    V.ships = G.ships.map((list, p) => !list ? null : list.map(x => (all || p === seat || x.sunk) ? { c: x.c.slice(), sunk: x.sunk, hit: x.hit } : null));
+    V.placed = G.ships.map(x => !!x);
+    return V;
+  }
+  function legal(G) {
+    if (G.over) return [];
+    if (G.phase === 'place') { const f = randomFleet(G.cfg.size, G.fleet, G.cfg.touch, Math.random); return f ? [{ place: f }] : []; }
+    const out = []; G.shots[G.turn].forEach((v, i) => { if (v === UNK) out.push({ f: i }); }); return out;
+  }
+  // the lengths still afloat in the other fleet (public: sunk ships are announced)
+  function afloat(G, s) { const o = opp(G, s), gone = G.sunk[o].slice(), out = []; G.fleet.forEach((len, k) => { if (!gone.includes(k)) out.push(len); }); return out; }
+
+  /* ---------------- computer ----------------
+     0 kids: shoots around the sea, sometimes follows a hit
+     1 medium: hunt on a checkerboard, then finish the ship it hit
+     2 hard: counts every way the remaining ships still fit (probability map) */
+  function density(n, S, lens, touch) {
+    const D = Array(n * n).fill(0), hits = []; S.forEach((v, i) => { if (v === HIT) hits.push(i); });
+    const target = hits.length > 0;
+    for (const len of lens) for (let h = 0; h < 2; h++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const c = cellsOf(n, x, y, h, len); if (!c) continue;
+      let bad = false, cover = 0;
+      for (const i of c) { const v = S[i]; if (v === MISS || v === SUNK || v === WATER) { bad = true; break; } if (v === HIT) cover++; }
+      if (bad) continue;
+      if (!touch && c.some(i => around(n, i).some(j => S[j] === SUNK))) continue;
+      if (target && !cover) continue;
+      const w = target ? Math.pow(30, cover) : 1;
+      for (const i of c) if (S[i] === UNK) D[i] += w;
+    }
+    return D;
+  }
+  function ai(G, lvl) {
+    if (G.over) return null;
+    const s = G.turn, n = G.cfg.size;
+    if (G.phase === 'place') { if (G.ships && G.ships[s]) return null; return { place: randomFleet(n, G.fleet, G.cfg.touch, Math.random) }; }
+    const S = G.shots[s], unk = []; S.forEach((v, i) => { if (v === UNK) unk.push(i); });
+    if (!unk.length) return null;
+    const hits = []; S.forEach((v, i) => { if (v === HIT) hits.push(i); });
+    const nb4 = i => { const x = i % n, y = (i / n) | 0, o = []; if (x > 0) o.push(i - 1); if (x < n - 1) o.push(i + 1); if (y > 0) o.push(i - n); if (y < n - 1) o.push(i + n); return o; };
+    if (lvl <= 0) {
+      if (hits.length && Math.random() < 0.5) { const c = []; hits.forEach(h => nb4(h).forEach(j => { if (S[j] === UNK) c.push(j); })); if (c.length) return { f: FC.pick(c) }; }
+      return { f: FC.pick(unk) };
+    }
+    if (lvl === 1) {
+      if (hits.length) {
+        // a line of hits → keep going along it; otherwise around a hit
+        const step = (i, d) => { const x = i % n; if ((d === 1 && x === n - 1) || (d === -1 && x === 0)) return -1; const j = i + d; return j >= 0 && j < n * n ? j : -1; };
+        const line = [];
+        for (const h of hits) for (const d of [1, -1, n, -n]) {
+          const back = step(h, -d); if (back < 0 || S[back] !== HIT) continue;   // h is part of a line along this axis
+          let j = h; while (j >= 0 && S[j] === HIT) j = step(j, d);
+          if (j >= 0 && S[j] === UNK) line.push(j);
+        }
+        if (line.length) return { f: FC.pick(line) };
+        const c = []; hits.forEach(h => nb4(h).forEach(j => { if (S[j] === UNK) c.push(j); }));
+        if (c.length) return { f: FC.pick(c) };
+      }
+      const par = unk.filter(i => ((i % n) + ((i / n) | 0)) % 2 === 0);
+      return { f: FC.pick(par.length ? par : unk) };
+    }
+    const D = density(n, S, afloat(G, s), G.cfg.touch);
+    let best = -1, list = [];
+    for (const i of unk) { if (D[i] > best) { best = D[i]; list = [i]; } else if (D[i] === best) list.push(i); }
+    return { f: FC.pick(list.length ? list : unk) };
+  }
+  return { id: 'bs', minP: 2, maxP: 2, hidden: true, DEF, SIZES, FLEETS, UNK, MISS, HIT, SUNK, WATER, cellsOf, check, randomFleet, newGame, apply, legal, view, ai, afloat, levels: 3 };
+})();
+
+/* ---- g_dom.js ---- */
+/* =====================================================================
+   Dominoes (double-six, 28 tiles) — 2–4 players. 7 tiles each with two
+   players, 5 with three or four; the rest is the boneyard.
+   On your turn put a tile on either end of the line so the numbers match.
+   No tile fits → take from the boneyard one at a time until one fits; boneyard
+   empty → pass. First to empty the hand wins; if nobody can move (blocked),
+   the fewest pips in hand wins.
+   Hidden information: a hand is in the view only for its owner; the
+   boneyard only as a count. The computer reads only its own hand and the
+   public table (it remembers which numbers a player was missing).
+   ===================================================================== */
+GAMES.dom = (() => {
+  const DEF = { face: 'dots' };
+  const TILES = []; for (let a = 0; a <= 6; a++) for (let b = a; b <= 6; b++) TILES.push([a, b]);
+  const handSize = n => n === 2 ? 7 : 5;
+  function newGame(players, cfg, seed) {
+    cfg = Object.assign({}, DEF, cfg); if (cfg.face !== 'pics') cfg.face = 'dots';
+    const G = FC.base('dom', players, cfg, seed), n = players.length, deck = FC.shuffle(G, TILES.map((t, i) => i));
+    G.hands = players.map((p, s) => deck.slice(s * handSize(n), (s + 1) * handSize(n)));
+    G.bone = deck.slice(n * handSize(n));
+    G.c0 = null; G.L = []; G.R = []; G.ends = [-1, -1];      // centre tile, the two arms (inner → outer), the open numbers
+    G.passes = 0; G.lacks = players.map(() => []); G.drew = players.map(() => 0); G.phase = 'play';
+    return G;
+  }
+  // every way seat s can play now: [{ t, end }]  (end 0 = left, 1 = right)
+  function options(G, s) {
+    const hand = G.hands[s]; if (!hand) return [];
+    if (!G.c0) return hand.map(t => ({ t, end: 1 }));
+    const out = [], [L, R] = G.ends;
+    for (const t of hand) { const [a, b] = TILES[t]; if (a === L || b === L) out.push({ t, end: 0 }); if ((a === R || b === R) && !(L === R && (a === L || b === L))) out.push({ t, end: 1 }); }
+    return out;
+  }
+  const pips = h => h.reduce((x, t) => x + TILES[t][0] + TILES[t][1], 0);
+  const boneN = G => G.bone ? G.bone.length : (G.boneN || 0);
+  function noteLack(G, s) { for (const v of G.ends) if (v >= 0 && !G.lacks[s].includes(v)) G.lacks[s].push(v); }
+  function apply(G, s, a) {
+    if (G.over || s !== G.turn || !a) return { ok: false };
+    const n = G.players.length;
+    if (a.draw) {
+      if (options(G, s).length || !G.bone.length) return { ok: false };
+      noteLack(G, s); G.hands[s].push(G.bone.pop()); G.drew[s]++;
+      FC.ev(G, { e: 'draw', s, left: G.bone.length });
+      return { ok: true };
+    }
+    if (a.pass) {
+      if (options(G, s).length || G.bone.length) return { ok: false };
+      noteLack(G, s); G.passes++;
+      FC.ev(G, { e: 'pass', s });
+      if (G.passes >= n) {                                    // blocked: fewest pips wins
+        const p = G.hands.map(pips), best = Math.min(...p), top = p.map((v, k) => v === best ? k : -1).filter(k => k >= 0);
+        G.over = true; G.winner = top.length === 1 ? top[0] : -1; G.tied = top;
+        FC.ev(G, { e: 'win', s: G.winner, block: true, tied: top, pips: p });
+        return { ok: true };
+      }
+      G.turn = (s + 1) % n; return { ok: true };
+    }
+    if (a.t == null) return { ok: false };
+    const t = a.t | 0, end = a.end ? 1 : 0;
+    if (!options(G, s).some(o => o.t === t && (!G.c0 || o.end === end || G.ends[0] === G.ends[1]))) return { ok: false };
+    const [x, y] = TILES[t];
+    let piece;
+    if (!G.c0) { G.c0 = { t, a: x, b: y }; G.ends = [x, y]; piece = G.c0; }
+    else {
+      const v = G.ends[end], inner = x === v ? x : y, outer = x === v ? y : x;
+      piece = { t, i: inner, o: outer };
+      (end ? G.R : G.L).push(piece); G.ends[end] = outer;
+    }
+    G.hands[s].splice(G.hands[s].indexOf(t), 1); G.passes = 0;
+    FC.ev(G, { e: 'play', s, t, end: G.L.length + G.R.length ? end : -1, n: G.L.length + G.R.length, left: G.hands[s].length });
+    if (!G.hands[s].length) { G.over = true; G.winner = s; FC.ev(G, { e: 'win', s }); return { ok: true }; }
+    G.turn = (s + 1) % n; return { ok: true };
+  }
+  function view(G, seat) {
+    const V = FC.pub(G, ['hands', 'bone']), all = seat === -2 || G.over;
+    V.hands = G.hands.map((h, p) => all || p === seat ? h.slice() : null);
+    V.counts = G.hands.map(h => h.length); V.boneN = G.bone.length;
+    return V;
+  }
+  function legal(G) {
+    if (G.over) return [];
+    const o = options(G, G.turn); if (o.length) return o;
+    return boneN(G) ? [{ draw: 1 }] : [{ pass: 1 }];
+  }
+  /* ---------------- computer ----------------
+     0 kids: any tile that fits · 1 medium: gets rid of big tiles and doubles
+     2 hard: keeps numbers it can follow, blocks numbers others are missing,
+             and plays on numbers that are all used up */
+  function ai(G, lvl) {
+    if (G.over) return null;
+    const s = G.turn, opts = options(G, s);
+    if (!opts.length) return boneN(G) ? { draw: 1 } : { pass: 1 };
+    if (lvl <= 0) return FC.pick(opts);
+    const hand = G.hands[s], n = G.players.length;
+    const score = o => {
+      const [a, b] = TILES[o.t], p = a + b, dbl = a === b;
+      if (lvl === 1) return p + (dbl ? 4 : 0) + Math.random() * 0.1;
+      // the open ends after this move
+      const ends = G.c0 ? G.ends.slice() : [a, b];
+      if (G.c0) { const v = ends[o.end]; ends[o.end] = a === v ? b : a; }
+      const rest = hand.filter(t => t !== o.t);
+      const follow = v => rest.filter(t => TILES[t][0] === v || TILES[t][1] === v).length;
+      // numbers already seen (table + my hand): when all 7 tiles of a number are out, nobody else can play on it
+      const seen = Array(7).fill(0), mark = t => { const [x, y] = TILES[t]; seen[x]++; if (y !== x) seen[y]++; };
+      if (G.c0) mark(G.c0.t); G.L.forEach(q => mark(q.t)); G.R.forEach(q => mark(q.t)); rest.forEach(mark); mark(o.t);
+      let sc = p * 1.0 + (dbl ? 6 : 0);
+      sc += 2.2 * (follow(ends[0]) + (ends[1] !== ends[0] ? follow(ends[1]) : 0));
+      for (let k = 1; k < n; k++) {                            // the next player matters most
+        const q = (s + k) % n, w = k === 1 ? 1 : 0.5, lack = G.lacks[q] || [];
+        const blocked = ends.filter(v => lack.includes(v) || seen[v] >= 7).length;
+        sc += w * (blocked === 2 || (ends[0] === ends[1] && blocked) ? 9 : blocked * 3);
+      }
+      return sc + Math.random() * 0.05;
+    };
+    let best = opts[0], bs = -1e9;
+    for (const o of opts) { const v = score(o); if (v > bs) { bs = v; best = o; } }
+    return { t: best.t, end: best.end };
+  }
+  return { id: 'dom', minP: 2, maxP: 4, hidden: true, DEF, TILES, handSize, options, pips, newGame, apply, legal, view, ai, levels: 3 };
+})();
+
 /* ---- texts.js ---- */
 /* =====================================================================
    FamilyNest — texts. Hebrew + English complete; Russian, Spanish, Arabic:
@@ -1492,7 +1819,7 @@ he: {
   st_first: 'ניצחון ראשון', std_first: 'לנצח במשחק כלשהו', st_win_sl: 'אלוף הסולמות', std_win_sl: 'לנצח בסולמות ונחשים', st_win_ludo: 'אלוף הלודו', std_win_ludo: 'לנצח בלודו', st_win_c4: 'ארבע!', std_win_c4: 'לנצח בארבע בשורה', st_win_ttt: 'שלוש בשורה', std_win_ttt: 'לנצח באיקס-עיגול', st_win_mem: 'זוגות זוגות', std_win_mem: 'לנצח בזיכרון', st_win_dots: 'בונה קופסאות', std_win_dots: 'לנצח בנקודות וקופסאות',
   st_ladders3: 'מטפס על', std_ladders3: 'לעלות ב-3 סולמות במשחק אחד', st_survivor: 'שורד נחשים', std_survivor: 'ליפול ב-3 נחשים — ובכל זאת לנצח', st_space: 'אסטרונאוט', std_space: 'לנצח בלוח החלל', st_capper: 'אוכל הכלים', std_capper: 'לאכול 3 כלים במשחק לודו אחד', st_three6: 'שלוש שישיות', std_three6: 'להטיל 6 שלוש פעמים ברצף (ולהפסיד את התור 😅)',
   st_beatOwl: 'חכם מהינשוף', std_beatOwl: 'לנצח את פרופסור ינשוף', st_beatTop: 'בלתי מנוצח בעצמי', std_beatTop: 'לנצח את "כמעט בלתי מנוצח"', st_perfectDraw: 'תיקו מושלם', std_perfectDraw: 'להגיע לתיקו מול "בלתי מנוצח" באיקס-עיגול', st_elephant: 'זיכרון של פיל', std_elephant: 'לנצח את "זיכרון של פיל"', st_memAce: 'מוח על', std_memAce: 'למצוא 4 זוגות ברצף בתור אחד', st_boxes5: 'שרשרת קופסאות', std_boxes5: 'לסגור 5 קופסאות בתור אחד',
-  st_family: 'ערב משפחתי', std_family: 'לשחק 3 אנשים או יותר בטלפון אחד', st_online: 'משחקים מרחוק', std_online: 'לשחק משחק אונליין', st_allGames: 'קשת משחקים', std_allGames: 'לשחק בכל 6 המשחקים', st_games10: '10 משחקים', std_games10: 'לשחק 10 משחקים', st_games50: '50 משחקים', std_games50: 'לשחק 50 משחקים',
+  st_family: 'ערב משפחתי', std_family: 'לשחק 3 אנשים או יותר בטלפון אחד', st_online: 'משחקים מרחוק', std_online: 'לשחק משחק אונליין', st_allGames: 'קשת משחקים', std_allGames: 'לשחק בכל 8 המשחקים', st_games10: '10 משחקים', std_games10: 'לשחק 10 משחקים', st_games50: '50 משחקים', std_games50: 'לשחק 50 משחקים',
   tk_snakeMe: 'אוי לא, נחש! 🐍|למה דווקא אני?! 😩|סססס… זה כואב|טוב, מתחילים מחדש 😅', tk_snakeYou: 'חחח, נחש! 😆|ביי ביי למעלה 👋|הנחש היה רעב 🐍', tk_ladderMe: 'יש! סולם! 🪜|תראו אותי עולה! 🚀|איזה מזל יש לי 😎', tk_ladderYou: 'איזה מזל יש לך! 😮|לא הוגן… 😤|יפה, יפה 👏',
   tk_capMe: 'סליחה… לא באמת 😈|הביתה, מהר! 🏠|תודה על הכלי 😋', tk_capped: 'נו באמת! 😭|זה עוד יחזור אליך 😤|אוף… הכל מההתחלה', tk_home: 'עוד אחד בבית! 🏠|כמעט סיימתי 😎', tk_three6: 'שלוש שישיות?! 😱|יותר מדי מזל 😅', tk_six: 'שש! 🎲|קדימה! 💨',
   tk_match: 'זכרתי! 🧠|זוג! ✨|איזה זיכרון יש לי 😎', tk_box: 'קופסה שלי! 📦|עוד אחת 😋', tk_think: 'הממ… 🤔|רגע, אני חושב…|איפה לשים…', tk_win: 'ניצחתי! 🏆|עוד משחק? 😎|היה כיף! 🎉', tk_lose: 'כל הכבוד! 👏|ניצחת אותי הפעם 😮|בפעם הבאה אני מנצח 😤', tk_draw: 'תיקו! 🤝|אף אחד לא ניצח 😅',
@@ -1500,6 +1827,20 @@ he: {
   rules: 'חוקים', stats: 'סטטיסטיקה', replays: 'ריפליי', settings: 'הגדרות', about: 'אודות', resume: 'המשך משחק', resumeNet: 'חזרה לחדר האונליין',
   saveFail: 'השמירה נכשלה — הזיכרון בטלפון מלא', cancel: 'ביטול', ok: 'אישור', close: 'סגור', home: 'לבית', next: 'הבא', skip: 'דלג', letsPlay: 'יאללה, משחקים!',
   g_sl: 'סולמות ונחשים', g_ludo: 'לודו', g_c4: 'ארבע בשורה', g_ttt: 'איקס-עיגול', g_mem: 'זיכרון', g_dots: 'נקודות וקופסאות',
+  g_bs: 'צוללות', g_dom: 'דומינו', opt_kids: 'לילדים', opt_face: 'מה מצויר על האבנים', face_dots: 'נקודות', face_pics: 'תמונות',
+  r_again: 'פגיעה = עוד תור', r_againD: 'מי שפוגע בספינה יורה שוב', r_touch: 'ספינות יכולות לגעת', r_touchD: 'כבוי: חייב להיות מים בין ספינה לספינה', bs_fleetOf: 'הצי: ספינות באורך {n}',
+  lvd_bs_0: 'יורה לכל מקום, לפעמים ממשיך ליד פגיעה', lvd_bs_1: 'יורה בשיטה ומסיים כל ספינה שפגע בה', lvd_bs_2: 'מחשב איפה הספינות יכולות להסתתר',
+  lvd_dom_0: 'שם כל אבן שמתאימה', lvd_dom_1: 'נפטר קודם מהאבנים הגדולות', lvd_dom_2: 'זוכר מה חסר לכם וחוסם אתכם',
+  bs_placeHow: 'גרור ספינה כדי להזיז · הקש עליה כדי לסובב · 🔀 לסידור חדש', bs_ready: 'הצי מוכן!', bs_wait: '{n} מסדר את הצי…', bs_placed: '{n} סידר את הצי', bs_go: 'מתחילים לירות!', bs_aim: 'הקש על משבצת בים של היריב 🎯', bs_sunk: 'טבעה ספינה באורך {n}!', bs_again: 'פגיעה! עוד תור', bs_noRoom: 'אין שם מקום לספינה',
+  dom_pick: 'בחר אבן שמתאימה לאחד הקצוות', dom_where: 'לאיזה צד? הקש על העיגול הזוהר', dom_noFit: 'האבן הזאת לא מתאימה עכשיו', dom_noMove: 'אין לך אבן מתאימה — לוקחים מהערימה…', dom_noMovePass: 'אין לך אבן מתאימה והערימה ריקה — מדלגים', dom_bone: 'בערימה: {n}', dom_drew: '{n} לוקח מהערימה', dom_iDrew: 'לקחת אבן מהערימה', dom_pass: '{n} מדלג — אין אבן מתאימה', dom_block: 'המשחק נחסם — מי שיש לו הכי מעט נקודות מנצח',
+  pass_to: 'העבר את הטלפון ל{n}', pass_hint: 'בלי להציץ! 🙈 רק {n} רואה את המסך עכשיו', pass_show: 'אני {n} — הצג',
+  sunkN: 'הטביע {n}', tilesN: 'נשארו {n} אבנים', pipsN: '{n} נקודות', ev_shot_miss: '{who} פספס 💦', ev_shot_hit: '{who} פגע 💥', ev_shot_sunk: '{who} הטביע ספינה 🚢', ev_dom_play: '{who} שם אבן',
+  st_win_bs: 'אדמירל', std_win_bs: 'לנצח בצוללות', st_win_dom: 'מלך הדומינו', std_win_dom: 'לנצח בדומינו',
+  tk_bsHit: 'בום! 💥|פגעתי! 😎|מצאתי משהו 👀', tk_bsSunk: 'גלוגלוגלו 🌊|טבעה לך ספינה 😈|עוד אחת למטה!', tk_bsLost: 'הספינה שלי! 😭|אוי, טבעתי 🌊|לא הוגן…', tk_bsMissYou: 'פספסת! 😆|רק מים שם 💦|חחח, לא שם',
+  tk_domDraw: 'אוף, אין לי… 😩|עוד אחת מהערימה', tk_domLast: 'נשארה לי אחת! 😎|כמעט סיימתי ☝️',
+  ru_bs: '<p>לכל שחקן ים עם צי ספינות סודי. קודם כל אחד מסדר את הספינות שלו (🔀 מסדר לבד, גוררים כדי להזיז ומקישים כדי לסובב).</p><p>אחר כך יורים לסירוגין: מקישים על משבצת בים של היריב. 💦 = פספוס, 💥 = פגיעה, וכשכל הספינה נפגעה — <b>היא טובעת</b> 🚢. מי שמטביע ראשון את כל הצי — מנצח.</p><ul><li>{again}</li><li>{touch}</li></ul><p>בטלפון אחד: כשמגיע התור של השני מופיע מסך "העבר את הטלפון" — כדי שלא יראו את הספינות שלך.</p>',
+  ru_bs_again: 'פוגעים? <b>יורים שוב</b>.', ru_bs_noagain: 'כל אחד יורה פעם אחת בתור.', ru_bs_touch: 'מותר לספינות לגעת זו בזו.', ru_bs_notouch: 'ספינות <b>לא נוגעות</b> — אפילו לא באלכסון. כשספינה טובעת, המים סביבה מסומנים לבד.',
+  ru_dom: '<p>28 אבנים, בכל אבן שני חצאים עם 0 עד 6 נקודות (או תמונות). שניים מקבלים 7 אבנים כל אחד, שלושה או ארבעה — 5. השאר בערימה.</p><p>בתורך שמים אבן באחד משני הקצוות של השורה, כך ש<b>המספרים נוגעים זה בזה ושווים</b>. אבן שמתאימה לשני הצדדים — מקישים עליה ואז על העיגול הזוהר בצד שרוצים.</p><p>אין אבן מתאימה? לוקחים מהערימה עד שיש (זה קורה לבד). הערימה נגמרה — מדלגים. מי שנגמרות לו האבנים ראשון — מנצח 🏆. אם אף אחד לא יכול לשים — מי שיש לו הכי מעט נקודות ביד מנצח.</p>',
   slb_classic: 'קלאסי', slb_jungle: 'ג׳ונגל', slb_space: 'חלל', slb_candy: 'ממתקים',
   player: 'שחקן', you: 'אני', host: 'מארח', level: 'רמה', players: 'שחקנים', options: 'אפשרויות', startGame: 'מתחילים!',
   pe_0: 'פרופסור ינשוף', pe_1: 'טוביה הצב', pe_2: 'קוקו הקוף', pe_3: 'שושי השועלה', pe_4: 'פנדי', pe_5: 'קפיצי הצפרדע', pe_6: 'ניצנית החד-קרן', pe_7: 'תומי התמנון',
@@ -1562,7 +1903,7 @@ en: {
   st_first: 'First win', std_first: 'Win any game', st_win_sl: 'Ladder champ', std_win_sl: 'Win Snakes & Ladders', st_win_ludo: 'Ludo champ', std_win_ludo: 'Win Ludo', st_win_c4: 'Four!', std_win_c4: 'Win Four in a Row', st_win_ttt: 'Three in a row', std_win_ttt: 'Win Tic-Tac-Toe', st_win_mem: 'Pairs pairs', std_win_mem: 'Win Memory', st_win_dots: 'Box builder', std_win_dots: 'Win Dots & Boxes',
   st_ladders3: 'Climber', std_ladders3: 'Climb 3 ladders in one game', st_survivor: 'Snake survivor', std_survivor: 'Fall down 3 snakes — and still win', st_space: 'Astronaut', std_space: 'Win on the space board', st_capper: 'Token eater', std_capper: 'Capture 3 tokens in one Ludo game', st_three6: 'Three sixes', std_three6: 'Roll 6 three times in a row (and lose the turn 😅)',
   st_beatOwl: 'Wiser than the owl', std_beatOwl: 'Beat Professor Owl', st_beatTop: 'Unbeatable me', std_beatTop: 'Beat "almost unbeatable"', st_perfectDraw: 'Perfect draw', std_perfectDraw: 'Draw against "unbeatable" in Tic-Tac-Toe', st_elephant: 'Elephant memory', std_elephant: 'Beat "elephant memory"', st_memAce: 'Super brain', std_memAce: 'Find 4 pairs in a row in one turn', st_boxes5: 'Box chain', std_boxes5: 'Close 5 boxes in one turn',
-  st_family: 'Family night', std_family: 'Play with 3 or more people on one phone', st_online: 'Far away friends', std_online: 'Play an online game', st_allGames: 'Game rainbow', std_allGames: 'Play all 6 games', st_games10: '10 games', std_games10: 'Play 10 games', st_games50: '50 games', std_games50: 'Play 50 games',
+  st_family: 'Family night', std_family: 'Play with 3 or more people on one phone', st_online: 'Far away friends', std_online: 'Play an online game', st_allGames: 'Game rainbow', std_allGames: 'Play all 8 games', st_games10: '10 games', std_games10: 'Play 10 games', st_games50: '50 games', std_games50: 'Play 50 games',
   tk_snakeMe: 'Oh no, a snake! 🐍|Why me?! 😩|Ssss… that hurts', tk_snakeYou: 'Haha, a snake! 😆|Bye bye, top 👋|The snake was hungry 🐍', tk_ladderMe: 'Yes! A ladder! 🪜|Look at me go! 🚀|So lucky 😎', tk_ladderYou: 'So lucky! 😮|Not fair… 😤|Nice, nice 👏',
   tk_capMe: 'Sorry… not really 😈|Back home, quick! 🏠|Thanks for the token 😋', tk_capped: 'Oh come on! 😭|This will come back to you 😤|Ugh… from the start', tk_home: 'Another one home! 🏠|Almost done 😎', tk_three6: 'Three sixes?! 😱|Too much luck 😅', tk_six: 'Six! 🎲|Go go! 💨',
   tk_match: 'I remembered! 🧠|A pair! ✨|What a memory 😎', tk_box: 'My box! 📦|Another one 😋', tk_think: 'Hmm… 🤔|Wait, thinking…|Where to go…', tk_win: 'I won! 🏆|Another game? 😎|That was fun! 🎉', tk_lose: 'Well done! 👏|You got me this time 😮|Next time I win 😤', tk_draw: 'A draw! 🤝|Nobody won 😅',
@@ -1570,6 +1911,20 @@ en: {
   rules: 'Rules', stats: 'Stats', replays: 'Replays', settings: 'Settings', about: 'About', resume: 'Continue game', resumeNet: 'Back to the online room',
   saveFail: 'Saving failed — the phone storage is full', cancel: 'Cancel', ok: 'OK', close: 'Close', home: 'Home', next: 'Next', skip: 'Skip', letsPlay: "Let's play!",
   g_sl: 'Snakes & Ladders', g_ludo: 'Ludo', g_c4: 'Four in a Row', g_ttt: 'Tic-Tac-Toe', g_mem: 'Memory', g_dots: 'Dots & Boxes',
+  g_bs: 'Battleship', g_dom: 'Dominoes', opt_kids: 'kids', opt_face: 'On the tiles', face_dots: 'Dots', face_pics: 'Pictures',
+  r_again: 'Hit = another shot', r_againD: 'Hit a ship and you fire again', r_touch: 'Ships may touch', r_touchD: 'Off: there must be water between ships', bs_fleetOf: 'Fleet: ships of length {n}',
+  lvd_bs_0: 'Fires anywhere, sometimes keeps going near a hit', lvd_bs_1: 'Searches in a pattern and finishes every ship it hits', lvd_bs_2: 'Works out where ships can still hide',
+  lvd_dom_0: 'Plays any tile that fits', lvd_dom_1: 'Gets rid of the big tiles first', lvd_dom_2: 'Remembers what you are missing and blocks you',
+  bs_placeHow: 'Drag a ship to move it · tap it to turn it · 🔀 for a new layout', bs_ready: 'Fleet ready!', bs_wait: '{n} is placing the fleet…', bs_placed: '{n} placed the fleet', bs_go: 'Fire away!', bs_aim: 'Tap a square in the other sea 🎯', bs_sunk: 'Sank a ship of {n}!', bs_again: 'Hit! Fire again', bs_noRoom: 'No room for the ship there',
+  dom_pick: 'Pick a tile that fits one of the ends', dom_where: 'Which side? Tap the glowing circle', dom_noFit: 'That tile does not fit right now', dom_noMove: 'No tile fits — taking from the pile…', dom_noMovePass: 'No tile fits and the pile is empty — pass', dom_bone: 'In the pile: {n}', dom_drew: '{n} takes from the pile', dom_iDrew: 'You took a tile from the pile', dom_pass: '{n} passes — no tile fits', dom_block: 'Blocked — the fewest pips wins',
+  pass_to: 'Pass the phone to {n}', pass_hint: 'No peeking! 🙈 Only {n} looks now', pass_show: 'I am {n} — show',
+  sunkN: 'sank {n}', tilesN: '{n} tiles left', pipsN: '{n} pips', ev_shot_miss: '{who} missed 💦', ev_shot_hit: '{who} hit 💥', ev_shot_sunk: '{who} sank a ship 🚢', ev_dom_play: '{who} played a tile',
+  st_win_bs: 'Admiral', std_win_bs: 'Win at Battleship', st_win_dom: 'Domino king', std_win_dom: 'Win at Dominoes',
+  tk_bsHit: 'Boom! 💥|Got something! 😎', tk_bsSunk: 'Glug glug 🌊|There goes your ship 😈', tk_bsLost: 'My ship! 😭|Oh no, sunk 🌊', tk_bsMissYou: 'Missed! 😆|Only water there 💦',
+  tk_domDraw: 'Ugh, nothing… 😩|One more from the pile', tk_domLast: 'One left! 😎|Almost done ☝️',
+  ru_bs: '<p>Each player has a sea with a secret fleet. First everyone places their ships (🔀 places them for you, drag to move, tap to turn).</p><p>Then take turns firing: tap a square in the other sea. 💦 = miss, 💥 = hit, and when the whole ship is hit — <b>it sinks</b> 🚢. Sink the whole fleet first to win.</p><ul><li>{again}</li><li>{touch}</li></ul><p>On one phone a "pass the phone" screen appears between turns so nobody sees your ships.</p>',
+  ru_bs_again: 'A hit? <b>Fire again</b>.', ru_bs_noagain: 'One shot per turn.', ru_bs_touch: 'Ships may touch each other.', ru_bs_notouch: 'Ships <b>never touch</b> — not even corner to corner. When a ship sinks the water around it is marked for you.',
+  ru_dom: '<p>28 tiles, each with two halves of 0 to 6 pips (or pictures). Two players get 7 tiles each, three or four get 5. The rest is the pile.</p><p>On your turn put a tile on one of the two ends of the line so the <b>touching numbers match</b>. A tile that fits both ends — tap it, then tap the glowing circle on the side you want.</p><p>Nothing fits? Take from the pile until something does (it happens by itself). Pile empty — pass. First to play all tiles wins 🏆. If nobody can play, the fewest pips in hand wins.</p>',
   slb_classic: 'Classic', slb_jungle: 'Jungle', slb_space: 'Space', slb_candy: 'Candy',
   player: 'Player', you: 'Me', host: 'host', level: 'Level', players: 'Players', options: 'Options', startGame: "Let's go!",
   pe_0: 'Professor Owl', pe_1: 'Toby the Turtle', pe_2: 'Coco the Monkey', pe_3: 'Foxy', pe_4: 'Pandy', pe_5: 'Hoppy the Frog', pe_6: 'Twinkle the Unicorn', pe_7: 'Tommy the Octopus',
@@ -1628,13 +1983,13 @@ en: {
   ru_dots: '<p>On your turn draw one line between two dots. Close a box (its fourth side) and it is yours — <b>and you draw again</b>. When every box is closed, most boxes wins.</p><p>Tip: don\'t draw a box\'s third side — that gives it to your friend!</p>'
 },
 ru: { subtitle: 'Играет вся семья!', mNet: 'Онлайн с семьёй', mNetD: 'Комната с кодом и голосом', mCpu: 'Против компьютера', mHot: 'Все на одном телефоне', rules: 'Правила', stats: 'Статистика', replays: 'Повторы', settings: 'Настройки', about: 'О программе', resume: 'Продолжить', cancel: 'Отмена', close: 'Закрыть', home: 'Домой', next: 'Далее', skip: 'Пропустить', letsPlay: 'Играем!',
-  g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
+  g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
   lv_kids: 'Для детей', lv_easy: 'Лёгкий', lv_med: 'Средний', lv_hard: 'Сложный', lv_top: 'Почти непобедимый', lv_perfect: 'Непобедимый', lv_elephant: 'Слоновья память' },
 es: { subtitle: '¡Juega toda la familia!', mNet: 'En línea con la familia', mNetD: 'Sala con código y voz', mCpu: 'Contra la computadora', mHot: 'Todos en un teléfono', rules: 'Reglas', stats: 'Estadísticas', replays: 'Repeticiones', settings: 'Ajustes', about: 'Acerca de', resume: 'Continuar', cancel: 'Cancelar', close: 'Cerrar', home: 'Inicio', next: 'Siguiente', skip: 'Saltar', letsPlay: '¡A jugar!',
-  g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
+  g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
   lv_kids: 'Para niños', lv_easy: 'Fácil', lv_med: 'Medio', lv_hard: 'Difícil', lv_top: 'Casi invencible', lv_perfect: 'Invencible', lv_elephant: 'Memoria de elefante' },
 ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع العائلة', mNetD: 'غرفة برمز وصوت', mCpu: 'ضد الحاسوب', mHot: 'الجميع على هاتف واحد', rules: 'القواعد', stats: 'إحصائيات', replays: 'إعادة', settings: 'الإعدادات', about: 'حول', resume: 'متابعة', cancel: 'إلغاء', close: 'إغلاق', home: 'الرئيسية', next: 'التالي', skip: 'تخطَّ', letsPlay: 'هيا نلعب!',
-  g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
+  g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
   lv_kids: 'سهل للأطفال', lv_easy: 'سهل', lv_med: 'متوسط', lv_hard: 'صعب', lv_top: 'شبه مستحيل', lv_perfect: 'لا يُهزم', lv_elephant: 'ذاكرة فيل' }
 };
 
@@ -1642,12 +1997,12 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
 const FAST = /[?&]fast=1/.test(location.search);
-const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'];
+const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom'];
 
 /* ---------- storage shim: localStorage with an in-memory fallback ---------- */
 const LS = (() => {
@@ -1755,6 +2110,10 @@ function beep(kind) {
       case 'lose': [392, 330, 262].forEach((f, i) => tone(f, .3, 'sine', .12, i * .14)); break;
       case 'draw': [523, 523, 659].forEach((f, i) => tone(f, .2, 'sine', .1, i * .12)); break;
       case 'err': tone(180, .15, 'square', .06); break;
+      case 'whoosh': tone(1400, .38, 'sine', .05, 0, 300); break;
+      case 'splash': for (let i = 0; i < 5; i++) click(i * .04, .3, 900 + i * 300); tone(600, .25, 'sine', .05, .02, 200); break;
+      case 'boom': click(0, .9, 120); click(.03, .8, 220); tone(110, .45, 'sawtooth', .1, 0, 40); break;
+      case 'sink': [520, 440, 370, 300, 240].forEach((f, i) => tone(f, .16, 'sine', .08, i * .1, f * .8)); break;
     }
   } catch (e) {}
 }
@@ -2296,6 +2655,385 @@ UI.dots = (() => {
   };
 })();
 
+/* ---- boards2.js ---- */
+/* =====================================================================
+   FamilyNest 1.3 — boards for Battleship and Dominoes (same renderer interface
+   as boards.js). Both games hide information: they draw only what the view
+   carries (V.me = whose eyes).
+   ===================================================================== */
+
+/* ================= Battleship ================= */
+UI.bs = (() => {
+  const LOW = 0.46;                                   // the strip under the big sea (fraction of the width)
+  const E = () => GAMES.bs;
+  const meOf = V => V.me >= 0 ? V.me : 0;             // spectator / covered phone: seat 0's side, nothing secret
+  const oppOf = s => 1 - s;
+  // which sea is big: placing → mine; my turn → the other sea; their turn → mine (watch the shots land)
+  function focus(V) { const me = meOf(V); if (V.phase === 'place') return 'f'; if (V.over) return 't'; return V.turn === me ? 't' : 'f'; }
+  function rects(el, V) {
+    const W = el.clientWidth, sm = W * .42, gap = W * .03, rtl = document.documentElement.dir === 'rtl';
+    const big = { x: 0, y: 0, s: W }, small = { x: rtl ? W - sm : 0, y: W + gap, s: sm };
+    const f = focus(V); return { t: f === 't' ? big : small, f: f === 'f' ? big : small, panel: { x: rtl ? 0 : sm + gap, y: W + gap, w: W - sm - gap, h: W * LOW - gap } };
+  }
+  const shipPath = (n, c, h) => { const x0 = Math.min(...c.map(i => i % n)), y0 = Math.min(...c.map(i => (i / n) | 0)), len = c.length; return { x: x0, y: y0, w: h ? len : 1, hh: h ? 1 : len }; };
+  function shipSVG(n, cells, col, opts) {
+    opts = opts || {};
+    const h = cells.length > 1 ? (cells[1] - cells[0]) === 1 : true, r = shipPath(n, cells, h), pad = .12;
+    const x = r.x + pad, y = r.y + pad, w = r.w - 2 * pad, hh = r.hh - 2 * pad, rad = Math.min(w, hh) / 2;
+    let g = '<g class="bs-ship' + (opts.cls ? ' ' + opts.cls : '') + '"' + (opts.k != null ? ' data-k="' + opts.k + '"' : '') + '>';
+    g += svg('rect', { x, y, width: w, height: hh, rx: rad, fill: opts.sunk ? '#5d6470' : col, stroke: opts.sunk ? '#2b3038' : 'rgba(0,0,0,.35)', 'stroke-width': .06 });
+    g += svg('rect', { x: x + (h ? .2 : .14), y: y + (h ? .14 : .2), width: h ? w - .4 : w - .28, height: h ? hh - .28 : hh - .4, rx: rad * .6, fill: 'rgba(255,255,255,.22)' });
+    cells.forEach(i => { const cx = i % n + .5, cy = ((i / n) | 0) + .5; g += svg('circle', { cx, cy, r: .12, fill: opts.sunk ? '#9aa2ad' : '#fff', opacity: .85 }); });
+    return g + '</g>';
+  }
+  const mark = (n, i, v, fresh) => {
+    const cx = i % n + .5, cy = ((i / n) | 0) + .5, B = E(), anim = fresh ? ' class="bs-pop"' : '';
+    if (v === B.MISS) return '<g' + anim + ' style="transform-origin:' + cx + 'px ' + cy + 'px">' + svg('circle', { cx, cy, r: .3, fill: 'none', stroke: '#fff', 'stroke-width': .07, opacity: .9 }) + svg('circle', { cx, cy, r: .12, fill: '#fff' }) + '</g>';
+    if (v === B.WATER) return svg('circle', { cx, cy, r: .07, fill: '#fff', opacity: .55 });
+    if (v === B.HIT || v === B.SUNK) return '<g' + anim + ' style="transform-origin:' + cx + 'px ' + cy + 'px">' + svg('circle', { cx, cy, r: .36, fill: v === B.SUNK ? '#e53935' : '#ff9800', opacity: .95 }) + svg('path', { d: 'M' + (cx - .2) + ',' + (cy - .2) + 'L' + (cx + .2) + ',' + (cy + .2) + 'M' + (cx + .2) + ',' + (cy - .2) + 'L' + (cx - .2) + ',' + (cy + .2), stroke: '#fff', 'stroke-width': .1, 'stroke-linecap': 'round' }) + '</g>';
+    return '';
+  };
+  function sea(n) {
+    let g = svg('rect', { x: 0, y: 0, width: n, height: n, rx: .35, fill: 'url(#bsW' + n + ')' });
+    for (let k = 1; k < n; k++) g += svg('line', { x1: k, y1: .05, x2: k, y2: n - .05, stroke: 'rgba(255,255,255,.28)', 'stroke-width': .03 }) + svg('line', { x1: .05, y1: k, x2: n - .05, y2: k, stroke: 'rgba(255,255,255,.28)', 'stroke-width': .03 });
+    return '<defs><linearGradient id="bsW' + n + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fc3f5"/><stop offset="1" stop-color="#1f78c9"/></linearGradient></defs>' + g;
+  }
+  // draw one sea: whose = the seat whose ships are in it; S = the shots grid fired at it
+  function seaSVG(el, V, whose, S, extra) {
+    const n = V.cfg.size, me = meOf(V), col = PC(UI.bs.color(V, whose));
+    let g = sea(n);
+    const list = V.ships[whose] || [];
+    if (whose === me && V.phase === 'place' && el._draft && !V.placed[me]) {
+      const D = el._draft, dr = el._drag;
+      D.ships.forEach((sh, k) => {
+        let s2 = sh; if (dr && dr.k === k && dr.pos) s2 = dr.pos;
+        const c = E().cellsOf(n, s2[0], s2[1], s2[2], V.fleet[k]); if (!c) return;
+        let cls = D.sel === k ? 'sel' : '';
+        if (dr && dr.k === k && dr.pos) { const tmp = D.ships.slice(); tmp[k] = s2; cls = E().check(n, V.fleet, tmp, V.cfg.touch) ? 'ok' : 'bad'; }
+        g += shipSVG(n, c, col, { k, cls });
+      });
+    } else list.forEach((x, k) => {
+      if (!x) return;
+      const sunkNow = x.c.every(i => S[i] === E().SUNK);          // (during an animation: only ships already shown sunk)
+      if (whose !== me && !sunkNow && !V.over && V.me !== -2) return;
+      g += shipSVG(n, x.c, col, { sunk: sunkNow });
+    });
+    S.forEach((v, i) => { if (v) g += mark(n, i, v, extra && extra.fresh === i); });
+    if (extra && extra.ghost != null) { const i = extra.ghost; g += svg('rect', { x: i % n + .06, y: ((i / n) | 0) + .06, width: .88, height: .88, rx: .18, fill: 'none', stroke: '#ffeb3b', 'stroke-width': .12 }); }
+    if (extra && extra.hint != null) { const i = extra.hint; g += svg('circle', { cx: i % n + .5, cy: ((i / n) | 0) + .5, r: .36, fill: 'none', stroke: '#59c3ff', 'stroke-width': .1, 'stroke-dasharray': '.15 .1' }); }
+    return '<svg viewBox="-.08 -.08 ' + (n + .16) + ' ' + (n + .16) + '" aria-hidden="true">' + g + '</svg>';
+  }
+  function fleetRow(V, whose) {
+    const sunk = V.sunk[whose] || [];
+    return V.fleet.map((len, k) => '<i class="bs-mini' + (sunk.includes(k) ? ' gone' : '') + '" style="width:' + (len * 9 + 6) + 'px;--sc:' + PC(UI.bs.color(V, whose)) + '"></i>').join('');
+  }
+  function place(div, r) { div.style.left = r.x + 'px'; div.style.top = r.y + 'px'; div.style.width = r.s + 'px'; div.style.height = r.s + 'px'; }
+  return {
+    aspect: () => 1 / (1 + LOW),
+    color: (V, s) => s === 0 ? 3 : 0,
+    chip: (V, s) => '🚢<span class="ltr">' + (V.fleet.length - (V.sunk[s] || []).length) + '</span>',
+    mount(el, V) {
+      el.innerHTML = '<div class="bs-g" data-g="t"></div><div class="bs-g" data-g="f"></div><div class="bs-p"></div>';
+      el._S = null; el._draft = null; el._drag = null;
+      const f = el.querySelector('[data-g="f"]');
+      f.addEventListener('pointerdown', e => this.down(el, e));
+      f.addEventListener('pointermove', e => this.move(el, e));
+      f.addEventListener('pointerup', e => this.up(el, e));
+      f.addEventListener('pointercancel', () => { el._drag = null; this.draw(el, curView() || V); });
+      this.draw(el, V);
+    },
+    size() {},
+    ensureDraft(el, V) {
+      const me = meOf(V), key = (CUR ? CUR.id : '') + ':' + me;
+      if (V.phase !== 'place' || V.placed[me] || V.me < 0) return;
+      if (!el._draft || el._draft.key !== key) el._draft = { key, ships: E().randomFleet(V.cfg.size, V.fleet, V.cfg.touch, Math.random), sel: -1 };
+    },
+    shuffle(el, V) { const D = el._draft; if (!D) return; D.ships = E().randomFleet(V.cfg.size, V.fleet, V.cfg.touch, Math.random); D.sel = -1; beep('flip'); this.draw(el, V); },
+    draw(el, V, cx) {
+      cx = cx || this._cx || {};
+      this.ensureDraft(el, V);
+      const me = meOf(V), o = oppOf(me), R = rects(el, V), S = el._animS || V.shots;
+      if (!el._animS) el._S = V.shots.map(a => a.slice());
+      const t = el.querySelector('[data-g="t"]'), f = el.querySelector('[data-g="f"]'), p = el.querySelector('.bs-p');
+      if (!t) return;
+      place(t, R.t); place(f, R.f);
+      t.classList.toggle('big', focus(V) === 't'); f.classList.toggle('big', focus(V) === 'f');
+      t.classList.toggle('aim', !!(cx.mine && V.phase === 'fire'));
+      const ex = el._fresh || {};
+      t.innerHTML = seaSVG(el, V, o, S[me], { ghost: cx.ghost, hint: cx.hint && cx.hint.f, fresh: ex.t }) + '<span class="bs-tag">🎯</span>';
+      f.innerHTML = seaSVG(el, V, me, S[o], { fresh: ex.f }) + '<span class="bs-tag">' + (V.phase === 'place' ? '🛠' : '🚢') + '</span>';
+      p.style.cssText = 'left:' + R.panel.x + 'px;top:' + R.panel.y + 'px;width:' + R.panel.w + 'px;height:' + R.panel.h + 'px';
+      p.innerHTML = '<div class="bs-row"><span class="em">' + pemoji(V, o) + '</span><span class="bs-fl">' + fleetRow(V, o) + '</span></div><div class="bs-row"><span class="em">' + pemoji(V, me) + '</span><span class="bs-fl">' + fleetRow(V, me) + '</span></div>';
+    },
+    async anim(el, V, evs) {
+      const me = meOf(V), n = V.cfg.size, B = E();
+      // replay the shots one by one on a copy of what is on screen (later shots must not appear early)
+      const S = (el._S || V.shots).map(a => a.slice());
+      el._animS = S;
+      for (const e of evs) {
+        if (e.e === 'place') { beep('place'); if (e.s !== me || V.me < 0) toastBoard('⚓ ' + T('bs_placed', { n: esc(pname(V, e.s)) })); await wait(500 * SPEED()); }
+        else if (e.e === 'fire') { this.draw(el, V); showBanner('🚀 ' + T('bs_go'), null); beep('turn'); await wait(900 * SPEED()); }
+        else if (e.e === 'shot') {
+          const grid = oppOf(e.s) === me ? 'f' : 't';
+          // bring that sea to the front, drop the shot, then show what it hit
+          const fake = Object.assign({}, V, { turn: grid === 't' ? me : oppOf(me), phase: 'fire', over: false });
+          const R = rects(el, fake), box = el.querySelector('[data-g="' + grid + '"]'); place(el.querySelector('[data-g="t"]'), R.t); place(el.querySelector('[data-g="f"]'), R.f);
+          el.querySelector('[data-g="t"]').classList.toggle('big', grid === 't'); el.querySelector('[data-g="f"]').classList.toggle('big', grid === 'f');
+          await wait(330 * SPEED());
+          const r = box.getBoundingClientRect(), br = el.getBoundingClientRect(), u = r.width / (n + .16), x = r.left - br.left + (e.i % n + .5 + .08) * u, y = r.top - br.top + (((e.i / n) | 0) + .5 + .08) * u;
+          const b = document.createElement('div'); b.className = 'bs-bomb'; b.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + u + 'px;height:' + u + 'px'; el.appendChild(b);
+          beep('whoosh'); await wait(420 * SPEED()); b.remove();
+          const g = S[e.s]; g[e.i] = e.r === 'miss' ? B.MISS : B.HIT;
+          if (e.r === 'sunk') { e.cells.forEach(c => { g[c] = B.SUNK; }); (e.water || []).forEach(w => { g[w] = B.WATER; }); }
+          el._fresh = grid === 't' ? { t: e.i } : { f: e.i };
+          this.draw(el, fake);
+          if (e.r === 'miss') { beep('splash'); await wait(380 * SPEED()); }
+          else { beep('boom'); buzz(40); box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); await wait(420 * SPEED()); }
+          if (e.r === 'sunk') { beep('sink'); bubbleSeat(e.s, '🎯', 'big', 1400); setTimeout(() => bubbleSeat(oppOf(e.s), '😭', 'big', 1400), 300); toastBoard('🚢 ' + T('bs_sunk', { n: iso(e.cells.length) }), 1500); await wait(700 * SPEED()); }
+          el._fresh = null;
+        } else if (e.e === 'again') { toastBoard('💥 ' + T('bs_again'), 1200); await wait(250 * SPEED()); }
+      }
+      el._animS = null;
+      this.draw(el, V);
+    },
+    // placing: drag a ship to move it, tap it to turn it
+    cell(el, e, V) { const f = el.querySelector('[data-g="f"] svg'); if (!f) return null; const r = f.getBoundingClientRect(), n = V.cfg.size, u = r.width / (n + .16); return { x: Math.floor((e.clientX - r.left) / u - .08), y: Math.floor((e.clientY - r.top) / u - .08) }; },
+    down(el, e) {
+      const V = curView(); if (!V || V.game !== 'bs' || V.phase !== 'place' || !canAct(V) || !el._draft) return;
+      const c = this.cell(el, e, V); if (!c) return; const n = V.cfg.size, i = c.y * n + c.x, D = el._draft;
+      const k = D.ships.findIndex((sh, j) => (E().cellsOf(n, sh[0], sh[1], sh[2], V.fleet[j]) || []).includes(i)); if (k < 0) return;
+      el._drag = { k, gx: c.x - D.ships[k][0], gy: c.y - D.ships[k][1], sx: c.x, sy: c.y, moved: false, pos: null };
+      D.sel = k; try { e.target.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault();
+      this.draw(el, V);
+    },
+    move(el, e) {
+      const dr = el._drag; if (!dr) return; const V = curView(); if (!V) return;
+      const c = this.cell(el, e, V); if (!c) return;
+      if (c.x === dr.sx && c.y === dr.sy && !dr.moved) return;
+      dr.moved = true; const h = el._draft.ships[dr.k][2], len = V.fleet[dr.k], n = V.cfg.size;
+      let x = c.x - dr.gx, y = c.y - dr.gy; x = Math.max(0, Math.min(n - (h ? len : 1), x)); y = Math.max(0, Math.min(n - (h ? 1 : len), y));
+      if (!dr.pos || dr.pos[0] !== x || dr.pos[1] !== y) { dr.pos = [x, y, h]; this.draw(el, V); }
+    },
+    up(el, e) {
+      const dr = el._drag; if (!dr) return; el._drag = null; const V = curView(); if (!V) return;
+      const D = el._draft, n = V.cfg.size, len = V.fleet[dr.k];
+      if (dr.moved && dr.pos) {
+        const tmp = D.ships.slice(); tmp[dr.k] = dr.pos;
+        if (E().check(n, V.fleet, tmp, V.cfg.touch)) { D.ships = tmp; beep('place'); } else { beep('err'); toastBoard(T('bs_noRoom'), 1200); }
+      } else {
+        // turn around the tapped cell; slide back inside the sea if needed
+        const [x0, y0, h] = D.ships[dr.k], nh = h ? 0 : 1; let done = false;
+        for (let off = 0; off < len && !done; off++) {
+          let x = nh ? dr.sx - off : dr.sx, y = nh ? dr.sy : dr.sy - off;
+          if (x < 0 || y < 0) continue;
+          const tmp = D.ships.slice(); tmp[dr.k] = [x, y, nh];
+          if (E().check(n, V.fleet, tmp, V.cfg.touch)) { D.ships = tmp; done = true; }
+        }
+        if (done) beep('flip'); else { beep('err'); toastBoard(T('bs_noRoom'), 1200); }
+      }
+      this.draw(el, V);
+    },
+    tap(el, V, pt, cx) {
+      if (V.phase !== 'fire' || focus(V) !== 't') return null;
+      const R = rects(el, V), W = el.clientWidth, H = el.clientHeight, n = V.cfg.size, S = V.shots[meOf(V)];
+      const px = pt.x * W - R.t.x, py = pt.y * H - R.t.y, u = R.t.s / (n + .16);
+      const gx = px / u - .08, gy = py / u - .08; if (gx < -.6 || gy < -.6 || gx > n + .6 || gy > n + .6) return null;
+      let best = -1, bd = 1e9;
+      for (let i = 0; i < n * n; i++) { if (S[i]) continue; const d = Math.hypot(gx - (i % n + .5), gy - (((i / n) | 0) + .5)); if (d < bd) { bd = d; best = i; } }
+      return best >= 0 && bd < .95 ? { f: best } : null;
+    },
+    needsConfirm: V => V.phase === 'fire' && V.cfg.size >= 10 && ST.confirmBig,
+    status(V, cx) {
+      if (V.phase === 'place') return cx.mine ? T('bs_placeHow') : V.placed[meOf(V)] || V.me < 0 ? T('bs_wait', { n: esc(pname(V, V.turn)) }) : '';
+      return cx.mine ? T('bs_aim') : '';
+    },
+    bar(V, mine) {
+      if (V.phase !== 'place' || !mine) return null;
+      return '<button class="btn" id="bsMix" style="min-width:64px;font-size:22px" aria-label="shuffle">🔀</button><button class="dieBtn go" id="bsReady" style="--dc:' + PC(this.color(V, V.turn)) + '"><span style="font-size:26px">⚓</span><span>' + T('bs_ready') + '</span></button>';
+    },
+    bindBar(V) {
+      const el = $('#board');
+      const m = $('#bsMix'); if (m) m.onclick = () => this.shuffle(el, curView());
+      const r = $('#bsReady'); if (r) r.onclick = () => { if (el._draft) act({ place: el._draft.ships.map(s => s.slice()) }); };
+    }
+  };
+})();
+
+/* ================= Dominoes ================= */
+UI.dom = (() => {
+  const VW = 1000, VH = 1300, HAND = 330, U = 10;          // viewBox · hand strip height · chain row width (tile units)
+  const T6 = () => GAMES.dom.TILES;
+  const meOf = V => V.me;
+  // where every tile of the line goes: [{t, x, y, w, h, v1, v2}] in tile units (v1 = left/top half)
+  function chain(V) {
+    const out = []; if (!V.c0) return out;
+    const c = V.c0, dbl0 = c.a === c.b;
+    if (dbl0) out.push({ t: c.t, x: -.5, y: -1, w: 1, h: 2, v1: c.a, v2: c.b }); else out.push({ t: c.t, x: -1, y: -.5, w: 2, h: 1, v1: c.a, v2: c.b });
+    const arm = (list, side) => {
+      let pos = [side * (dbl0 ? .5 : 1), 0], d = [side, 0], back = 0;
+      const ends = [];
+      for (const p of list) {
+        const dbl = p.i === p.o;
+        if (d[1] === 0) {
+          const len = dbl ? 1 : 2, far = pos[0] + d[0] * len;
+          if (Math.abs(far) + 1 <= U / 2) {
+            if (dbl) out.push({ t: p.t, x: pos[0] + (d[0] > 0 ? 0 : -1), y: pos[1] - 1, w: 1, h: 2, v1: p.i, v2: p.o });
+            else out.push({ t: p.t, x: d[0] > 0 ? pos[0] : pos[0] - 2, y: pos[1] - .5, w: 2, h: 1, v1: d[0] > 0 ? p.i : p.o, v2: d[0] > 0 ? p.o : p.i });
+            pos = [far, pos[1]];
+            continue;
+          }
+          // corner: the tile turns (down on the right arm, up on the left one)
+          const d2 = [0, side], c1 = [pos[0] + d[0] * .5, pos[1]];
+          out.push({ t: p.t, x: c1[0] - .5, y: d2[1] > 0 ? c1[1] - .5 : c1[1] - 1.5, w: 1, h: 2, v1: d2[1] > 0 ? p.i : p.o, v2: d2[1] > 0 ? p.o : p.i });
+          back = -d[0]; pos = [c1[0], c1[1] + d2[1] * 1.5]; d = d2;
+        } else {
+          // after a corner: lay the next one back the other way
+          const c1 = [pos[0], pos[1] + d[1] * .5], d2 = [back, 0];
+          out.push({ t: p.t, x: d2[0] > 0 ? c1[0] - .5 : c1[0] - 1.5, y: c1[1] - .5, w: 2, h: 1, v1: d2[0] > 0 ? p.i : p.o, v2: d2[0] > 0 ? p.o : p.i });
+          pos = [c1[0] + d2[0] * 1.5, c1[1]]; d = d2;
+        }
+      }
+      return { pos, d };
+    };
+    const r = arm(V.R, 1), l = arm(V.L, -1);
+    out.ends = [l, r];
+    return out;
+  }
+  // tile units → viewBox: fit the whole line into the table area
+  function fit(list) {
+    const xs = [], ys = []; list.forEach(p => { xs.push(p.x, p.x + p.w); ys.push(p.y, p.y + p.h); });
+    if (list.ends) list.ends.forEach(e => { xs.push(e.pos[0] - .8, e.pos[0] + .8); ys.push(e.pos[1] - .8, e.pos[1] + .8); });
+    if (!xs.length) { xs.push(-1, 1); ys.push(-1, 1); }
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const aw = VW - 60, ah = VH - HAND - 90, s = Math.min(aw / (x1 - x0), ah / (y1 - y0), 92);
+    return { s, ox: VW / 2 - (x0 + x1) / 2 * s, oy: 40 + ah / 2 + 20 - (y0 + y1) / 2 * s };
+  }
+  // one half of a tile: pips or a picture
+  function half(cx, cy, size, v, face) {
+    if (!v) return '';
+    if (face === 'pics') return svgArt('mem-animals-' + String(v - 1).padStart(2, '0') + '.webp', cx, cy, size * .86, MEM_SETS.animals[v - 1], size * .6);
+    return (PIPS[v] || []).map(([x, y]) => svg('circle', { cx: cx + (x - .5) * size * .78, cy: cy + (y - .5) * size * .78, r: size * .085, fill: v === 6 ? '#c62828' : '#1b1712' })).join('');
+  }
+  function tileSVG(x, y, w, h, v1, v2, face, o) {
+    o = o || {};
+    const vert = h > w, s = vert ? w : h, rx = s * .14;
+    let g = '<g class="dm-t' + (o.cls ? ' ' + o.cls : '') + '"' + (o.t != null ? ' data-t="' + o.t + '"' : '') + '>';
+    g += svg('rect', { x: x + s * .03, y: y + s * .07, width: w - s * .06, height: h - s * .06, rx, fill: 'rgba(0,0,0,.28)' });
+    g += svg('rect', { x: x + s * .02, y: y + s * .02, width: w - s * .04, height: h - s * .06, rx, fill: o.back ? 'url(#dmBack)' : '#fffdf6', stroke: o.ring || 'rgba(0,0,0,.35)', 'stroke-width': o.ring ? s * .07 : s * .025 });
+    if (!o.back) {
+      g += vert ? svg('line', { x1: x + s * .18, y1: y + h / 2 - s * .02, x2: x + w - s * .18, y2: y + h / 2 - s * .02, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 }) : svg('line', { x1: x + w / 2, y1: y + s * .16, x2: x + w / 2, y2: y + h - s * .2, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 });
+      if (vert) { g += half(x + w / 2, y + h / 4 - s * .01, s, v1, face) + half(x + w / 2, y + h * 3 / 4 - s * .03, s, v2, face); }
+      else { g += half(x + w / 4, y + h / 2 - s * .02, s, v1, face) + half(x + w * 3 / 4, y + h / 2 - s * .02, s, v2, face); }
+    }
+    return g + '</g>';
+  }
+  // my hand at the bottom: positions in the viewBox
+  function handLayout(n) {
+    if (!n) return [];
+    const rows = n <= 8 ? 1 : n <= 18 ? 2 : 3, per = Math.ceil(n / rows), gap = 12;
+    const tw = Math.min(112, (VW - 40 - (per - 1) * gap) / per, (HAND - 40 - (rows - 1) * gap) / (2 * rows)), th = tw * 2, out = [];
+    for (let k = 0; k < n; k++) { const r = (k / per) | 0, c = k % per, inRow = Math.min(per, n - r * per), x0 = (VW - (inRow * tw + (inRow - 1) * gap)) / 2; out.push({ x: x0 + c * (tw + gap), y: VH - HAND + 20 + r * (th + gap), w: tw, h: th }); }
+    return out;
+  }
+  const sortHand = h => h.slice().sort((a, b) => T6()[a][0] - T6()[b][0] || T6()[a][1] - T6()[b][1]);
+  function endPoints(V, F, L) {
+    if (!V.c0) return [{ end: 1, x: VW / 2, y: F.oy }];
+    return L.ends.map((e, k) => ({ end: k, x: F.ox + (e.pos[0] + e.d[0] * .55) * F.s, y: F.oy + (e.pos[1] + e.d[1] * .55) * F.s }));
+  }
+  function render(el, V, cx, hide) {
+    cx = cx || {};
+    const face = V.cfg.face, L = chain(V), F = fit(L), me = meOf(V);
+    let g = '<defs><pattern id="dmBack" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#3a6fd8"/><circle cx="10" cy="10" r="4" fill="#ffd54a"/></pattern></defs>';
+    g += svg('rect', { x: 0, y: 0, width: VW, height: VH - HAND, rx: 28, fill: 'url(#dmFelt)' });
+    g += '<defs><radialGradient id="dmFelt" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#3fae6a"/><stop offset="1" stop-color="#1f7a46"/></radialGradient></defs>';
+    L.forEach(p => { if (hide && hide.has(p.t)) return; g += tileSVG(F.ox + p.x * F.s, F.oy + p.y * F.s, p.w * F.s, p.h * F.s, p.v1, p.v2, face, { t: p.t, cls: 'ch' }); });
+    // boneyard
+    g += '<g opacity=".95">' + tileSVG(26, 26, 36, 72, 0, 0, face, { back: true }) + svg('text', { x: 72, y: 74, 'font-size': 34, 'font-weight': 700, fill: '#fff', 'font-family': 'Rubik,sans-serif' }, '×' + (V.boneN || 0)) + '</g>';
+    // where my selected tile can go
+    const mine = cx.mine, opts = mine && V.hands[me] ? GAMES.dom.options(V, me) : [];
+    const sel = el._sel != null && opts.some(o => o.t === el._sel) ? el._sel : null;
+    const hintT = cx.hint && cx.hint.t != null ? cx.hint.t : null;
+    if (sel != null || hintT != null) {
+      const t0 = sel != null ? sel : hintT, ends = new Set(opts.filter(o => o.t === t0).map(o => o.end));
+      if (V.c0 && V.ends[0] === V.ends[1] && ends.size) { ends.add(0); ends.add(1); }
+      endPoints(V, F, L).forEach(p => { if (ends.has(p.end) || !V.c0) g += '<g class="dm-end">' + svg('circle', { cx: p.x, cy: p.y, r: Math.max(26, F.s * .5), fill: 'rgba(255,235,59,.35)', stroke: '#ffeb3b', 'stroke-width': 6, 'stroke-dasharray': '10 8' }) + '</g>'; });
+    }
+    // the hand strip
+    g += svg('rect', { x: 0, y: VH - HAND + 4, width: VW, height: HAND - 4, rx: 28, fill: 'rgba(0,0,0,.18)' });
+    const hand = me >= 0 && V.hands[me] ? sortHand(V.hands[me]) : null;
+    if (hand) {
+      const H = handLayout(hand.length), canT = new Set(opts.map(o => o.t));
+      hand.forEach((t, k) => { const r = H[k], up = t === sel ? -26 : 0, dim = mine && !canT.has(t); g += tileSVG(r.x, r.y + up, r.w, r.h, T6()[t][0], T6()[t][1], face, { t, cls: 'hd' + (dim ? ' dim' : '') + (t === el._fresh ? ' new' : ''), ring: t === sel ? '#ffb300' : t === hintT ? '#59c3ff' : null }); });
+    } else {
+      const n = V.turn >= 0 ? V.counts[V.turn] : 0, H = handLayout(n);
+      H.forEach(r => { g += tileSVG(r.x, r.y, r.w, r.h, 0, 0, face, { back: true }); });
+    }
+    el.querySelector('svg').innerHTML = g;
+    el._F = F; el._L = L; el._hand = hand;
+  }
+  return {
+    aspect: () => VW / VH,
+    color: (V, s) => s,
+    chip: (V, s) => '<span class="dm-chip"></span><span class="ltr">' + (V.counts ? V.counts[s] : '') + '</span>',
+    mount(el, V) { el.innerHTML = '<svg class="base" viewBox="0 0 ' + VW + ' ' + VH + '" aria-hidden="true"></svg>'; el._sel = null; this._el = el; this.draw(el, V); },
+    size() {},
+    draw(el, V, cx) { cx = cx || this._cx || {}; if (!cx.mine) el._sel = null; render(el, V, cx); },
+    async anim(el, V, evs, cx) {
+      const playing = evs.filter(e => e.e === 'play').map(e => e.t), hide = new Set(playing);
+      render(el, V, {}, hide);
+      for (const e of evs) {
+        if (e.e === 'play') {
+          hide.delete(e.t); render(el, V, {}, hide);
+          const g = el.querySelector('.dm-t.ch[data-t="' + e.t + '"]');
+          if (g && g.animate && !FAST) {
+            const from = e.s === V.me ? 'translate(0px, 380px) scale(1.25)' : 'translate(0px, -420px) scale(.8)';
+            try { await g.animate([{ transform: from, opacity: .2 }, { transform: 'none', opacity: 1 }], { duration: 420 * SPEED(), easing: 'cubic-bezier(.2,.9,.3,1.1)' }).finished; } catch (x) {}
+          }
+          beep('place'); buzz(15);
+          if (e.left === 1) bubbleSeat(e.s, '☝️', 'big', 1300);
+          await wait(160 * SPEED());
+        } else if (e.e === 'draw') {
+          beep('flip');
+          if (e.s !== V.me) { bubbleSeat(e.s, '🂠', 'big', 900); toastBoard(T('dom_drew', { n: esc(pname(V, e.s)) }), 1000); }
+          else toastBoard(T('dom_iDrew'), 900);
+          await wait(420 * SPEED());
+        } else if (e.e === 'pass') { beep('miss'); bubbleSeat(e.s, '🙅', 'big', 1300); toastBoard(T('dom_pass', { n: esc(pname(V, e.s)) }), 1400); await wait(700 * SPEED()); }
+        else if (e.e === 'win' && e.block) { toastBoard('🧱 ' + T('dom_block'), 2200); await wait(900 * SPEED()); }
+      }
+      el._sel = null; render(el, V, this._cx || {});
+    },
+    tap(el, V, pt, cx) {
+      const me = meOf(V); if (me < 0 || !V.hands[me]) return null;
+      const X = pt.x * VW, Y = pt.y * VH, opts = GAMES.dom.options(V, me);
+      if (!opts.length) return null;
+      // a glowing end (after choosing a tile)
+      if (el._sel != null && el._F) {
+        const ends = endPoints(V, el._F, el._L); let best = null, bd = 1e9;
+        for (const p of ends) { const d = Math.hypot(X - p.x, Y - p.y); if (d < bd) { bd = d; best = p; } }
+        if (best && bd < Math.max(110, el._F.s * 1.4)) { const t = el._sel, ok = opts.some(o => o.t === t && (o.end === best.end || V.ends[0] === V.ends[1])); if (ok) { el._sel = null; return { t, end: best.end }; } }
+      }
+      // a tile in my hand
+      if (Y > VH - HAND - 30) {
+        const hand = sortHand(V.hands[me]), H = handLayout(hand.length); let k = -1, bd = 1e9;
+        H.forEach((r, j) => { const dx = Math.max(r.x - X, 0, X - r.x - r.w), dy = Math.max(r.y - Y, 0, Y - r.y - r.h), d = Math.hypot(dx, dy); if (d < bd) { bd = d; k = j; } });
+        if (k < 0 || bd > 40) return null;
+        const t = hand[k], mine = opts.filter(o => o.t === t);
+        if (!mine.length) { beep('err'); toastBoard(T('dom_noFit'), 1200); el._sel = null; this.draw(el, V, cx); return null; }
+        const ends = new Set(mine.map(o => o.end));
+        if (ends.size === 1 || !V.c0) { el._sel = null; return { t, end: mine[0].end }; }
+        el._sel = el._sel === t ? null : t; beep('flip'); this.draw(el, V, cx); return null;
+      }
+      return null;
+    },
+    status(V, cx) {
+      if (!cx.mine) return V.me >= 0 ? T('dom_bone', { n: iso(V.boneN) }) : '';
+      const o = GAMES.dom.options(V, V.me);
+      if (!o.length) return V.boneN ? T('dom_noMove') : T('dom_noMovePass');
+      return UI.dom._el && UI.dom._el._sel != null ? T('dom_where') : T('dom_pick');
+    }
+  };
+})();
+
 /* ---- table.js ---- */
 /* =====================================================================
    FamilyNest — game screen + controller (all six games)
@@ -2305,11 +3043,30 @@ UI.dots = (() => {
    ===================================================================== */
 let CUR = null;
 const isGuest = () => CUR && CUR.mode === 'net' && !CUR.host;
-function curView() { if (!CUR) return null; if (isGuest()) return CUR.V; return CUR.G ? FC.view(CUR.G, CUR.mode === 'net' ? 0 : -1) : null; }
 const humans = V => V.players.filter(p => p.kind === 'human').length;
+const isHidden = g => !!(GAMES[g] && GAMES[g].hidden);
+// whose eyes see the board on this phone (games with hidden information: battleship, dominoes)
+function localSeat(G) {
+  if (!isHidden(G.game)) return -1;
+  if (G.over) return -2;
+  if (humans(G) === 1) return G.players.findIndex(p => p.kind === 'human');
+  if (CUR.peek != null && CUR.peek >= 0 && G.players[G.turn].kind === 'human' && G.turn !== CUR.peek) CUR.peek = -1;   // the phone moves on
+  return CUR.peek != null ? CUR.peek : -1;
+}
+function curView() { if (!CUR) return null; if (isGuest()) return CUR.V; return CUR.G ? FC.view(CUR.G, CUR.mode === 'net' ? 0 : localSeat(CUR.G)) : null; }
+// one phone, several people, hidden cards/ships: cover the screen until the next person says it is them
+const needCurtain = V => CUR && CUR.mode === 'local' && isHidden(V.game) && !V.over && humans(V) > 1 && V.players[V.turn].kind === 'human' && CUR.peek !== V.turn;
+function showCurtain(V) {
+  if (CUR.curtainOv && CUR.curtainOv.parentNode) return;
+  const s = V.turn, ci = UI[V.game].color(V, s);
+  const o = overlay('<div class="curtain-in" style="' + pcStyle(ci) + '"><div class="big">' + pemoji(V, s) + '</div><h2>' + T('pass_to', { n: esc(pname(V, s)) }) + '</h2><p class="muted" style="font-size:17px">' + T('pass_hint', { n: esc(pname(V, s)) }) + '</p><button class="btn main huge wide" id="cShow">👀 ' + T('pass_show', { n: esc(pname(V, s)) }) + '</button></div>', 'curtain');
+  CUR.curtainOv = o; beep('turn');
+  o.querySelector('#cShow').onclick = () => { CUR.peek = s; CUR.lastTurn = s; closeOv(o); CUR.curtainOv = null; render(); schedule(); };
+}
 function canAct(V) {
   if (!CUR || !V || V.over || CUR.animating || CUR.pending) return false;
   if (CUR.mode === 'net') return V.me >= 0 && V.turn === V.me;
+  if (isHidden(V.game) && V.me !== V.turn) return false;
   return V.players[V.turn] && V.players[V.turn].kind === 'human';
 }
 const statMode = V => CUR.mode === 'net' ? 'net' : humans(V) > 1 ? 'hot' : 'cpu';
@@ -2359,8 +3116,9 @@ function schedule() {
     if (p.kind === 'bot') { try { thinkTalk(curView()); } catch (x) {} }
     pick = () => GAMES[G.game].ai(G, lvl);
   } else {
-    const one = singleOption(G); if (!one) return;
-    delay = 420 * sp; pick = () => one;
+      const one = singleOption(G); if (!one) return;
+    if (isHidden(G.game) && CUR.mode === 'local' && humans(G) > 1 && CUR.peek !== s) return;
+    delay = (G.game === 'dom' ? 750 : 420) * sp; pick = () => one;
   }
   const me = CUR, n = G.n;
   CUR.botT = setTimeout(() => {
@@ -2373,6 +3131,7 @@ function schedule() {
 }
 // Ludo: when every legal move is the same, a person needn't tap (setting "auto move")
 function singleOption(G) {
+  if (G.game === 'dom') { const l = GAMES.dom.legal(G); return l.length === 1 && (l[0].draw || l[0].pass) ? l[0] : null; }
   if (!ST.autoMove || G.game !== 'ludo' || G.phase !== 'move') return null;
   const ms = GAMES.ludo.moves(G, G.turn, G.die), k = new Set(ms.map(m => m.from + ':' + m.to));
   return k.size === 1 ? { t: ms[0].t } : null;
@@ -2401,7 +3160,7 @@ function onBoardTap(e) {
   if (a.bad) { beep('err'); buzz(30); toast(T('colFull'), 1400); return; }
   if (U.needsConfirm && U.needsConfirm(V) && !a.roll) {
     const key = JSON.stringify(a);
-    if (CUR.ghostKey !== key) { CUR.ghostKey = key; CUR.ghost = a.x != null ? a.x : a.l; CUR.ghostA = a; beep('flip'); U.draw($('#board'), V, ctx(V)); renderBar(V); return; }
+    if (CUR.ghostKey !== key) { CUR.ghostKey = key; CUR.ghost = a.x != null ? a.x : a.l != null ? a.l : a.f; CUR.ghostA = a; beep('flip'); U.draw($('#board'), V, ctx(V)); renderBar(V); return; }
   }
   act(a);
 }
@@ -2413,6 +3172,8 @@ function doHint() {
     else if (V.game === 'ttt') a = GAMES.ttt.ai(FC.clone(V), 3);
     else if (V.game === 'ludo' && V.phase === 'move') a = GAMES.ludo.ai(FC.clone(V), V.players.length === 2 ? 2 : 1);
     else if (V.game === 'dots') a = GAMES.dots.ai(FC.clone(V), 2);
+    else if (V.game === 'bs' && V.phase === 'fire') a = GAMES.bs.ai(FC.clone(V), 2);
+    else if (V.game === 'dom') { a = GAMES.dom.ai(FC.clone(V), 2); if (a && a.t == null) a = null; }
   } catch (e) { console.error(e); }
   if (!a) return;
   CUR.hints++; CUR.hint = a; CUR.hintN = V.n;
@@ -2479,6 +3240,7 @@ function render() {
   }
   if (fresh.length) { fresh.forEach(e => { if (e.e === 'roll') CUR.lastRoll = e.v; }); }
   U.draw(el, V, U._cx); renderPlayers(V); renderBar(V); renderStatus(V); turnBanner(V); handleEnd(V); renderBubbles();
+  if (needCurtain(V)) showCurtain(V);
 }
 function renderTop(V) {
   $('#gTitle').textContent = gname(V.game) + varLabel(V);
@@ -2493,6 +3255,7 @@ function varLabel(V) {
   if (V.game === 'ttt') return ' · ' + iso(c.size + '×' + c.size);
   if (V.game === 'dots') return ' · ' + iso(c.size + '×' + c.size);
   if (V.game === 'mem') return ' · ' + iso(c.pairs * 2);
+  if (V.game === 'bs') return ' · ' + iso(c.size + '×' + c.size);
   return '';
 }
 function renderPlayers(V) {
@@ -2515,7 +3278,9 @@ function turnText(V) {
 function renderBar(V) {
   const B = $('#gact'), mine = canAct(V), ci = UI[V.game].color(V, V.turn), em = pemoji(V, V.turn);
   let h = '';
-  if (V.game === 'sl' || V.game === 'ludo') {
+  const own = UI[V.game].bar ? UI[V.game].bar(V, mine) : null;
+  if (own) h = own;
+  else if (V.game === 'sl' || V.game === 'ludo') {
     if (V.game === 'ludo') h += '<button class="btn" id="bHint" ' + (mine && V.phase === 'move' ? '' : 'disabled') + ' aria-label="hint">💡</button>';
     const rollNow = mine && (V.game === 'sl' || V.phase === 'roll');
     const label = rollNow ? T('roll') : mine ? T('ld_pick') : em + ' ' + turnText(V);
@@ -2532,6 +3297,7 @@ function renderBar(V) {
   const hb = $('#bHint'); if (hb) hb.onclick = doHint;
   const ub = $('#bUndo'); if (ub) ub.onclick = doUndo;
   const ok = $('#bOk'); if (ok) ok.onclick = () => { const a = CUR.ghostA; if (a) act(a); };
+  if (own && UI[V.game].bindBar) UI[V.game].bindBar(V);
 }
 function renderStatus(V) {
   const U = UI[V.game], s = U.status ? U.status(V, ctx(V)) : '', el = $('#status');
@@ -2552,7 +3318,8 @@ function turnBanner(V) {
   CUR.lastTurn = V.turn; beep('turn'); buzz();
   const ci = UI[V.game].color(V, V.turn);
   // a banner when the phone passes between people, and once at the start — not on every turn (it would hide the last move)
-  if (humans(V) > 1 && CUR.mode !== 'net') showBanner(pemoji(V, V.turn) + ' ' + esc(pname(V, V.turn)), ci, T('yourTurnShort'));
+  if (humans(V) > 1 && CUR.mode !== 'net' && isHidden(V.game)) { /* the curtain already said whose turn it is */ }
+  else if (humans(V) > 1 && CUR.mode !== 'net') showBanner(pemoji(V, V.turn) + ' ' + esc(pname(V, V.turn)), ci, T('yourTurnShort'));
   else if (first) showBanner(pemoji(V, V.turn) + ' ' + T('yourTurnShort'), ci);
   CUR.bannerDone = true;
 }
@@ -2609,6 +3376,8 @@ function places(V) {
     if (V.game === 'sl') return V.pos[s];
     if (V.game === 'ludo') return V.tok[s].reduce((a, p) => a + (p < 0 ? 0 : p + 1), 0);
     if (V.game === 'mem' || V.game === 'dots') return V.score[s];
+    if (V.game === 'bs') return (V.sunk[1 - s] || []).length;
+    if (V.game === 'dom') return -(V.hands[s] ? GAMES.dom.pips(V.hands[s]) : 0);
     return s === V.winner ? 1 : 0;
   };
   const order = Array.from({ length: n }, (_, s) => s).sort((a, b) => (b === V.winner) - (a === V.winner) || sc(b) - sc(a));
@@ -2618,7 +3387,7 @@ function showEnd(V) {
   if (!V || !V.over) return;
   const me = mySeat(V), w = V.winner, U = UI[V.game];
   const title = w === -1 ? '🤝 ' + T('draw') : me >= 0 && w === me ? T('youWon') : T('winnerIs', { n: esc(pname(V, w)) });
-  const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
+  const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : V.game === 'bs' ? T('sunkN', { n: iso((V.sunk[1 - s] || []).length + '/' + V.fleet.length) }) : V.game === 'dom' ? T('tilesN', { n: iso(V.counts[s]) }) + (V.hands[s] && V.hands[s].length ? ' · ' + T('pipsN', { n: iso(GAMES.dom.pips(V.hands[s])) }) : '') : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
   const rows = places(V).map((x, i) => '<div class="rp' + (x.s === w ? ' win' : '') + '" style="' + pcStyle(U.color(V, x.s)) + '"><span class="pl">' + (w === -1 && (V.tied || []).includes(x.s) ? '🤝' : ['🥇', '🥈', '🥉', '4'][i]) + '</span><span class="em">' + pemoji(V, x.s) + '</span><b>' + esc(pname(V, x.s)) + '</b><span>' + scoreTxt(x.s) + '</span></div>').join('');
   const extra = newStickersHTML(CUR.newStk || []) + (CUR.hints ? '<p class="muted">' + T('hintsUsed', { n: CUR.hints }) + '</p>' : '') + (V.game === 'mem' && V.players.length === 1 ? '<p class="muted">' + T('memFlips', { n: iso(V.flips[0]) }) + '</p>' : '');
   const guest = isGuest(), net = CUR.mode === 'net';
@@ -2721,11 +3490,11 @@ function openReplay(rec) {
     + '<div class="row" dir="ltr" style="margin-top:10px"><button class="btn" data-r="first">⏮</button><button class="btn" data-r="p">◀</button><button class="btn" data-r="play">▶️</button><button class="btn" data-r="n">▶</button><button class="btn" data-r="last">⏭</button></div>'
     + '<p class="ltr muted" id="rvN" style="text-align:center;width:100%;margin:6px 0 0"></p><button class="btn wide" style="margin-top:8px" data-r="x">' + T('close') + '</button></div>');
   const el = o.querySelector('#rvBoard'), U = UI[rec.game];
-  const V0 = FC.view(frames[0], -1), W = Math.min(innerWidth - 60, 520, (innerHeight - 260) * U.aspect(V0, el));
+  const V0 = FC.view(frames[0], isHidden(rec.game) ? -2 : -1), W = Math.min(innerWidth - 60, 520, (innerHeight - 260) * U.aspect(V0, el));
   el.style.width = W + 'px'; el.style.height = (W / U.aspect(V0, el)) + 'px';
   U.mount(el, V0);
   const draw = () => {
-    const V = FC.view(frames[fi], -1); if (rec.game === 'mem') { U.mount(el, V); } else U.draw(el, V, {});
+    const V = FC.view(frames[fi], isHidden(rec.game) ? -2 : -1); if (rec.game === 'mem') { U.mount(el, V); } else U.draw(el, V, {});
     o.querySelector('#rvN').textContent = fi + ' / ' + (frames.length - 1);
     const e = V.ev && V.ev[V.ev.length - 1];
     o.querySelector('#rvLine').innerHTML = fi === 0 ? T('rvStart') : evLine(V, e);
@@ -2751,10 +3520,16 @@ function evLine(V, e) {
     case 'down': return T('ev_down', { who, a: iso(e.from), b: iso(e.to) });
     case 'cap': return T('ev_cap', { who: '<b>' + pemoji(V, e.by) + ' ' + esc(pname(V, e.by)) + '</b>', v: esc(pname(V, e.s)) });
     case 'home': return T('ev_home', { who });
-    case 'drop': case 'place': case 'line': case 'flip': return T('ev_moved', { who });
+    case 'drop': case 'line': case 'flip': return T('ev_moved', { who });
     case 'match': return T('ev_match', { who });
     case 'win': return e.s >= 0 ? T('winnerIs', { n: esc(pname(V, e.s)) }) : T('draw');
-    case 'draw': return T('draw');
+    case 'draw': return e.s != null && V.game === 'dom' ? T('dom_drew', { n: esc(pname(V, e.s)) }) : T('draw');
+    case 'place': return V.game === 'bs' ? T('bs_placed', { n: esc(pname(V, e.s)) }) : T('ev_moved', { who });
+    case 'shot': return T('ev_shot_' + e.r, { who });
+    case 'play': return T('ev_dom_play', { who });
+    case 'fire': return '🚀 ' + T('bs_go');
+    case 'again': return T('bs_again');
+    case 'pass': return T('dom_pass', { n: esc(pname(V, e.s)) });
   }
   return '';
 }
@@ -2788,10 +3563,15 @@ function react(V, evs) {
     else if (e.e === 'roll' && e.v === 6 && bot && V.game === 'ludo') say(V, s, 'tk_six');
     else if (e.e === 'match' && bot) say(V, s, 'tk_match');
     else if (e.e === 'line' && bot && e.boxes && e.boxes.length) say(V, s, 'tk_box');
+    else if (e.e === 'shot' && e.r === 'sunk') { const o = 1 - s; if (bot) say(V, s, 'tk_bsSunk', true); else if (isBotSeat(V, o)) say(V, o, 'tk_bsLost', true); }
+    else if (e.e === 'shot' && e.r === 'hit' && bot) say(V, s, 'tk_bsHit');
+    else if (e.e === 'shot' && e.r === 'miss' && !bot && isBotSeat(V, 1 - s)) say(V, 1 - s, 'tk_bsMissYou');
+    else if (e.e === 'draw' && bot && V.game === 'dom') say(V, s, 'tk_domDraw');
+    else if (e.e === 'play' && bot && e.left === 1) say(V, s, 'tk_domLast', true);
   }
 }
 // a word while thinking (board games without dice)
-function thinkTalk(V) { if (['c4', 'ttt', 'dots'].includes(V.game) && Math.random() < 0.18) say(V, V.turn, 'tk_think'); }
+function thinkTalk(V) { if (['c4', 'ttt', 'dots', 'bs', 'dom'].includes(V.game) && Math.random() < 0.18) say(V, V.turn, 'tk_think'); }
 function endTalk(V) {
   if (!ST.taunts || FAST) return;
   const w = V.winner;
@@ -2802,7 +3582,7 @@ function endTalk(V) {
 
 /* ---------- stickers (achievements) ---------- */
 const STICKERS = [
-  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'],
+  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'], ['win_bs', '🚢'], ['win_dom', '🀄'],
   ['ladders3', '🪜'], ['survivor', '💪'], ['space', '🚀'], ['capper', '💥'], ['three6', '😱'],
   ['beatOwl', '🦉'], ['beatTop', '🥇'], ['perfectDraw', '🤝'], ['elephant', '🐘'], ['memAce', '🧠'], ['boxes5', '📦'],
   ['family', '👨‍👩‍👧'], ['online', '🌐'], ['allGames', '🌈'], ['games10', '🎉'], ['games50', '🌟']
@@ -3109,7 +3889,8 @@ function bindVoice() {
 /* =====================================================================
    FamilyNest — screens: home · setup · settings · stats · replays · rules · about · guide
    ===================================================================== */
-const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜' };
+const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄' };
+const ART_TILES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'];      // games that have a drawn home tile
 // computer levels per game: [level, text key, stars] — only levels that passed the measurements
 function levelsOf(game, cfg, n) {
   const kids = [0, 'lv_kids', '🧸'], easy = [1, 'lv_easy', '⭐'], med = [2, 'lv_med', '⭐⭐'], hard = [3, 'lv_hard', '⭐⭐⭐'], top = [4, 'lv_top', '🏆'];
@@ -3119,6 +3900,8 @@ function levelsOf(game, cfg, n) {
   if (game === 'ttt') return (cfg && cfg.size > 3) ? [kids, easy, med, hard, top] : [kids, easy, med, [3, 'lv_perfect', '🏆']];
   if (game === 'mem') return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_elephant', '🐘']];
   if (game === 'dots') return [[0, 'lv_easy', '⭐'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
+  if (game === 'bs') return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
+  if (game === 'dom') return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
   return [];
 }
 /* ---------- tile pictures (inline SVG, no files) ---------- */
@@ -3128,11 +3911,13 @@ const TILE_ART = {
   c4: '<svg viewBox="0 0 110 90"><rect x="4" y="6" width="102" height="80" rx="10" fill="#1f5fc8"/>' + [0, 1, 2, 3].map(r => [0, 1, 2, 3, 4].map(c => { const v = [[0, 0, 1, 0, 0], [0, 2, 1, 0, 0], [2, 1, 2, 1, 0], [1, 2, 1, 2, 2]][r][c]; return '<circle cx="' + (17 + c * 19) + '" cy="' + (18 + r * 19) + '" r="7.5" fill="' + (v === 1 ? '#e8453c' : v === 2 ? '#f4b81c' : '#0d2f6b') + '"/>'; }).join('')).join('') + '</svg>',
   ttt: '<svg viewBox="0 0 90 90"><rect x="4" y="4" width="82" height="82" rx="12" fill="#fff"/><g stroke="#d3c6ec" stroke-width="4" stroke-linecap="round"><line x1="32" y1="12" x2="32" y2="78"/><line x1="58" y1="12" x2="58" y2="78"/><line x1="12" y1="32" x2="78" y2="32"/><line x1="12" y1="58" x2="78" y2="58"/></g><g stroke="#2f74d8" stroke-width="6" stroke-linecap="round"><path d="M13 13 L27 27 M27 13 L13 27"/><path d="M39 39 L51 51 M51 39 L39 51"/></g><g fill="none" stroke="#e8453c" stroke-width="6"><circle cx="71" cy="20" r="8"/><circle cx="20" cy="71" r="8"/></g><path d="M64 64 L77 77 M77 64 L64 77" stroke="#2f74d8" stroke-width="6" stroke-linecap="round"/></svg>',
   mem: '<svg viewBox="0 0 110 90"><g transform="rotate(-10 34 46)"><rect x="12" y="14" width="44" height="60" rx="8" fill="#ff9f43" stroke="#fff" stroke-width="4"/><text x="34" y="56" text-anchor="middle" font-size="30" fill="#fff" font-family="Secular One,Rubik,sans-serif">?</text></g><g transform="rotate(9 76 46)"><rect x="54" y="14" width="44" height="60" rx="8" fill="#fff" stroke="#fff" stroke-width="4"/><text x="76" y="56" text-anchor="middle" font-size="28">🐶</text></g></svg>',
+  bs: '<svg viewBox="0 0 110 90"><rect x="4" y="4" width="102" height="82" rx="12" fill="#2f8fdc"/>' + [1, 2, 3, 4].map(k => '<line x1="' + (4 + k * 20.4) + '" y1="6" x2="' + (4 + k * 20.4) + '" y2="84" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><line x1="6" y1="' + (4 + k * 16.4) + '" x2="104" y2="' + (4 + k * 16.4) + '" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>').join('') + '<rect x="12" y="25" width="56" height="13" rx="6.5" fill="#e8453c"/><circle cx="22" cy="31.5" r="2.4" fill="#fff"/><circle cx="34" cy="31.5" r="2.4" fill="#fff"/><circle cx="46" cy="31.5" r="2.4" fill="#fff"/><circle cx="58" cy="31.5" r="2.4" fill="#fff"/><rect x="80" y="44" width="13" height="34" rx="6.5" fill="#f4b81c"/><circle cx="86.5" cy="51" r="2.4" fill="#fff"/><circle cx="86.5" cy="61" r="2.4" fill="#fff"/><circle cx="86.5" cy="71" r="2.4" fill="#fff"/><circle cx="38" cy="62" r="9" fill="#ff9800"/><path d="M33 57 L43 67 M43 57 L33 67" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="64" cy="70" r="5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="64" cy="70" r="2" fill="#fff"/></svg>',
+  dom: '<svg viewBox="0 0 110 90"><rect x="4" y="8" width="102" height="74" rx="12" fill="#2f9e5f"/>' + [[14, 30, 0, 3, 5], [56, 30, 0, 5, 6], [36, 50, 0, 2, 2]].map(([x, y, r, a, b]) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (r - 8) + ')"><rect width="40" height="20" rx="4" fill="#fffdf6" stroke="#333" stroke-width="1.2"/><line x1="20" y1="3" x2="20" y2="17" stroke="#333" stroke-width="1.2"/>' + [[a, 0], [b, 20]].map(([v, ox]) => (PIPS[v] || []).map(([px, py]) => '<circle cx="' + (ox + 3 + px * 14) + '" cy="' + (3 + py * 14) + '" r="1.8" fill="' + (v === 6 ? '#c62828' : '#222') + '"/>').join('')).join('') + '</g>').join('') + '</svg>',
   dots: '<svg viewBox="0 0 90 90"><rect x="4" y="4" width="82" height="82" rx="12" fill="#fff"/><rect x="17" y="17" width="26" height="26" fill="#e8453c" opacity=".8"/><rect x="45" y="45" width="26" height="26" fill="#2f74d8" opacity=".8"/><g stroke-width="4" stroke-linecap="round"><path d="M15 15 H45 V45 H15 Z" stroke="#e8453c" fill="none"/><path d="M45 45 H75 V75 H45 Z" stroke="#2f74d8" fill="none"/><path d="M45 15 H75" stroke="#e8453c"/></g>' + [15, 45, 75].map(y => [15, 45, 75].map(x => '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#333"/>').join('')).join('') + '</svg>'
 };
 function renderHome() {
   $('#verLbl').textContent = 'v' + APP_VERSION;
-  $('#gameGrid').innerHTML = GAME_IDS.map(g => '<button class="gtile gt-' + g + '" data-g="' + g + '"><span class="np ltr">' + (GAMES[g].minP === GAMES[g].maxP ? GAMES[g].maxP : GAMES[g].minP + '–' + GAMES[g].maxP) + ' 👥</span><span class="art">' + (ART_ON ? '<img class="tl" src="tile-' + g + '.webp" alt="" draggable="false" data-tg="' + g + '" onerror="this.outerHTML=TILE_ART[this.dataset.tg]">' : TILE_ART[g]) + '</span><b>' + esc(gname(g)) + '</b></button>').join('');
+  $('#gameGrid').innerHTML = GAME_IDS.map(g => '<button class="gtile gt-' + g + '" data-g="' + g + '"><span class="np ltr">' + (GAMES[g].minP === GAMES[g].maxP ? GAMES[g].maxP : GAMES[g].minP + '–' + GAMES[g].maxP) + ' 👥</span><span class="art">' + (ART_ON && ART_TILES.includes(g) ? '<img class="tl" src="tile-' + g + '.webp" alt="" draggable="false" data-tg="' + g + '" onerror="this.outerHTML=TILE_ART[this.dataset.tg]">' : TILE_ART[g]) + '</span><b>' + esc(gname(g)) + '</b></button>').join('');
   $('#gameGrid').querySelectorAll('[data-g]').forEach(b => b.onclick = () => openSetup(b.dataset.g));
   const box = $('#resumeBox'); let h = '';
   const g = LS.get('game', null);
@@ -3160,7 +3945,7 @@ function pickAvatar(cur, cb) {
   bindAvGrid(o.querySelector('#pa'), v => { closeOv(o); cb(v); });
   o.querySelector('[data-x]').onclick = () => closeOv(o);
 }
-const SWITCHES = { sl: [['bounce', 'r_bounce'], ['six', 'r_six']], ludo: [['six2exit', 'r_six2exit'], ['extra6', 'r_extra6'], ['three6', 'r_three6'], ['safe', 'r_safe'], ['exact', 'r_exact']] };
+const SWITCHES = { bs: [['again', 'r_again'], ['touch', 'r_touch']], sl: [['bounce', 'r_bounce'], ['six', 'r_six']], ludo: [['six2exit', 'r_six2exit'], ['extra6', 'r_extra6'], ['three6', 'r_three6'], ['safe', 'r_safe'], ['exact', 'r_exact']] };
 // game options (shared by the setup screen and the online room)
 function optionsEditor(el, game, cfg, n, onChange) {
   const ch = () => onChange && onChange();
@@ -3171,12 +3956,14 @@ function optionsEditor(el, game, cfg, n, onChange) {
     if (game === 'ttt') h += '<label class="f">' + T('opt_board') + segHTML('size', [[3, '3×3'], [6, '6×6 · ' + T('inRow', { n: 4 })], [9, '9×9 · ' + T('inRow', { n: 5 })]], cfg.size) + '</label>';
     if (game === 'mem') h += '<label class="f">' + T('opt_cards') + segHTML('pairs', [[6, '12'], [8, '16'], [10, '20'], [12, '24']], cfg.pairs) + '</label><label class="f" style="margin-top:8px">' + T('opt_pics') + segHTML('set', Object.keys(MEM_SETS).map(k => [k, memHTML(k, 0) + ' ' + T('set_' + k)]), cfg.set) + '</label>';
     if (game === 'dots') h += '<label class="f">' + T('opt_board') + segHTML('size', [[3, '3×3'], [4, '4×4'], [5, '5×5']], cfg.size) + '</label>';
+    if (game === 'bs') h += '<label class="f">' + T('opt_board') + segHTML('size', [[10, '10×10'], [8, '8×8'], [6, '6×6 · ' + T('opt_kids')]], cfg.size) + '</label><p class="muted" style="font-size:13px;margin:4px 0 0">🚢 ' + T('bs_fleetOf', { n: GAMES.bs.FLEETS[cfg.size || 10].join(' · ') }) + '</p>';
+    if (game === 'dom') h += '<label class="f">' + T('opt_face') + segHTML('face', [['dots', '⚅ ' + T('face_dots')], ['pics', memHTML('animals', 0) + ' ' + T('face_pics')]], cfg.face || 'dots') + '</label>';
     h += '<label class="f" style="margin-top:8px">' + T('opt_first') + segHTML('firstMode', [['rand', '🎲 ' + T('first_rand')], ['p1', '1️⃣ ' + T('first_p1')]], cfg.firstMode || 'rand') + '</label>';
     if (SWITCHES[game]) h += '<h3 style="margin-top:12px">🏠 ' + T('houseRules') + '</h3>' + SWITCHES[game].map(([k, t]) => '<div class="sw"><span>' + T(t) + '<small class="muted">' + T(t + 'D') + '</small></span><input type="checkbox" data-r="' + k + '"' + (cfg[k] ? ' checked' : '') + '></div>').join('');
     el.innerHTML = h;
     el.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { cfg.board = b.dataset.b; draw(); ch(); });
     ['tokens', 'size', 'pairs'].forEach(k => bindSeg(el, k, v => { cfg[k] = +v; draw(); ch(); }));
-    ['set', 'firstMode'].forEach(k => bindSeg(el, k, v => { cfg[k] = v; ch(); }));
+    ['set', 'firstMode', 'face'].forEach(k => bindSeg(el, k, v => { cfg[k] = v; ch(); }));
     el.querySelectorAll('[data-r]').forEach(c => c.onchange = () => { cfg[c.dataset.r] = c.checked; ch(); });
   };
   draw();
@@ -3189,6 +3976,8 @@ function cfgSummary(game, c) {
   if (game === 'ttt') f.push(c.size + '×' + c.size);
   if (game === 'dots') f.push(c.size + '×' + c.size);
   if (game === 'mem') f.push(T('cardsN', { n: c.pairs * 2 }), T('set_' + c.set));
+  if (game === 'bs') { f.push(c.size + '×' + c.size); SWITCHES.bs.forEach(([k, t]) => { if (c[k]) f.push(T(t)); }); }
+  if (game === 'dom') f.push(T('face_' + (c.face || 'dots')));
   return f.join(' · ');
 }
 
@@ -3326,6 +4115,7 @@ function rulesOf(game) {
   const c = Object.assign({}, GAMES[game].DEF, (ST.setup[game] || {}).cfg || {});
   if (game === 'sl') return T('ru_sl', { bounce: c.bounce ? T('ru_sl_bounce') : T('ru_sl_nobounce'), six: c.six ? T('ru_sl_six') : '' });
   if (game === 'ludo') return T('ru_ludo', { exit: c.six2exit ? T('ru_ld_exit6') : T('ru_ld_exit1'), extra: c.extra6 ? T('ru_ld_extra') : '', three: c.three6 && c.extra6 ? T('ru_ld_three') : '', safe: c.safe ? T('ru_ld_safe') : T('ru_ld_nosafe'), exact: c.exact ? T('ru_ld_exact') : T('ru_ld_noexact') });
+  if (game === 'bs') return T('ru_bs', { again: c.again ? T('ru_bs_again') : T('ru_bs_noagain'), touch: c.touch ? T('ru_bs_touch') : T('ru_bs_notouch') });
   return T('ru_' + game);
 }
 function openRules(game, inGame) {
