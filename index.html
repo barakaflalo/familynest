@@ -2425,6 +2425,8 @@ GAMES.hippo = (() => {
   const DEF = { balls: 20, gold: true };
   const SIZES = [12, 20, 30];
   // the pond: 100×100, centre (50,50); hippos sit on the rim
+  // a round also ends when time is up (someone may stop tapping — the marbles would wait in front of their hippo forever)
+  const LIMIT = balls => 40 + balls * 1.5;
   const C = 50, RIM = 46, RB = 2.5, REST = 3.5, REACH = 17, HALF = 9.5;
   const PULL = 3.5, T_OUT = 0.16, T_HOLD = 0.07, T_BACK = 0.2, COOL = 0.05;    // one lunge ≈ 0.48 s
   // where each seat sits (angle of its hippo, y grows downwards): 2 → face to face, 3 → bottom/left/right
@@ -2458,7 +2460,7 @@ GAMES.hippo = (() => {
     const n = G.players.length, R = rng(seed == null ? G.seed : seed), balls = [];
     for (let k = 0; k < G.cfg.balls; k++) { const a = R() * Math.PI * 2, d = R() * 9; balls.push({ x: C + Math.cos(a) * d, y: C + Math.sin(a) * d, vx: (R() - .5) * 30, vy: (R() - .5) * 30, gold: G.cfg.gold && k === 0, eat: -1 }); }
     const hip = G.players.map((p, s) => ({ a: angOf(n, s), t: -1, cool: 0, ext: REST, bot: p.kind === 'bot' ? p.lvl : null, wait: 0, n: 0 }));
-    return { n, balls, hip, score: G.players.map(() => 0), left: balls.length, time: 0, R, kick: 0, done: false };
+    return { n, balls, hip, score: G.players.map(() => 0), left: balls.length, time: 0, R, kick: 0, done: false, limit: LIMIT(G.cfg.balls) };
   }
   // a hippo's mouth in pond coordinates
   const mouth = h => { const cx = C + Math.cos(h.a) * RIM, cy = C + Math.sin(h.a) * RIM; return { cx, cy, dx: -Math.cos(h.a), dy: -Math.sin(h.a) }; };
@@ -2520,7 +2522,7 @@ GAMES.hippo = (() => {
         }
       }
     }
-    if (S.left <= 0) { S.done = true; ev.push({ e: 'end' }); }
+    if (S.left <= 0 || S.time >= S.limit) { S.done = true; ev.push({ e: S.left <= 0 ? 'end' : 'timeup' }); }
     return ev;
   }
   // the seat a tap belongs to: the closest hippo among the given seats (pond coordinates)
@@ -2530,7 +2532,7 @@ GAMES.hippo = (() => {
     return best;
   }
   // a small picture of the round for online guests (sent ~15 times a second)
-  const snap = S => ({ b: S.balls.map(b => b.eat >= 0 ? null : [Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10]), g: S.balls.findIndex(b => b.gold), e: S.hip.map(h => Math.round(h.ext * 10) / 10), sc: S.score.slice(), d: S.done ? 1 : 0 });
+  const snap = S => ({ b: S.balls.map(b => b.eat >= 0 ? null : [Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10]), g: S.balls.findIndex(b => b.gold), e: S.hip.map(h => Math.round(h.ext * 10) / 10), sc: S.score.slice(), d: S.done ? 1 : 0, tl: Math.max(0, Math.ceil(S.limit - S.time)) });
   return { id: 'hippo', minP: 2, maxP: 4, live: true, DEF, SIZES, newGame, apply, legal, ai, view: G => FC.pub(G), round, step, lunge, seatAt, snap, rel, mouth, angOf, levels: 3, noHint: true, C, RIM, RB, REACH, HALF, REST };
 })();
 
@@ -3149,7 +3151,7 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
@@ -3360,7 +3362,7 @@ function svgArt(file, cx, cy, size, emoji, fs, tr) {
 // pictures used inside boards (SVG <image> and canvas): only drawn once they loaded fine, so a missing
 // file never leaves a hole: the code drawing stays until then. A load redraws the board.
 // games that already have drawn art (home tile + screen background); the rest stay drawn in code
-const ART_GAMES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon', 'lotto', 'guess'];
+const ART_GAMES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon', 'lotto', 'guess', 'diff'];
 const ART_IMG = {};
 let artRedrawT = 0;
 function artImg(f) {
@@ -3385,6 +3387,7 @@ const ART_GAME = {
   hippo: () => ['red', 'green', 'yellow', 'blue'].map(c => 'hippo-' + c + '.webp').concat(['hippo-head.webp', 'hippo-head-open.webp', 'hippo-pond.webp', 'hippo-ball.webp', 'hippo-gold.webp', 'hippo-grass.webp', 'hippo-yum.webp']),
   pirate: () => ['red', 'green', 'yellow', 'blue'].map(c => 'pirate-sword-' + c + '.webp').concat(['pirate-barrel.webp', 'pirate-head.webp', 'pirate-head-fly.webp', 'pirate-hole.webp', 'pirate-boom.webp']),
   simon: () => ['simon-case.webp', 'simon-cap.webp', 'simon-glow.webp'],
+  diff: () => ['park', 'sea', 'space', 'kitchen', 'farm', 'toys'].flatMap(t => ['df-bg-' + t + '.webp'].concat(Array.from({ length: 14 }, (_, k) => 'dfi-' + t + '-' + String(k).padStart(2, '0') + '.webp'))),
   lotto: () => ['lotto-card.webp', 'lotto-stamp.webp', 'lotto-caller.webp', 'lotto-confetti.webp'],
   guess: () => ['cap', 'crown', 'flower', 'glasses', 'bow', 'scarf', 'frame', 'back', 'magnifier'].map(k => 'gw-' + k + '.webp').concat(['gd-paper.webp', 'gd-pencil.webp', 'gd-eraser.webp', 'gd-trash.webp', 'gd-easel.webp'])
 };
@@ -4952,6 +4955,7 @@ UI.hippo = (() => {
       const a = E().angOf(n, s) + rot, px = 50 + Math.cos(a) * 41 * ZOOM + Math.cos(a + Math.PI / 2) * 17 * ZOOM, py = 50 + Math.sin(a) * 41 * ZOOM + Math.sin(a + Math.PI / 2) * 17 * ZOOM;
       x.fillStyle = 'rgba(0,0,0,.55)'; x.beginPath(); x.arc(px, py, 4.6, 0, 7); x.fill(); x.fillStyle = '#fff'; x.fillText(String(st.sc[s] || 0), px, py + .3);
     }
+    if (st.tl != null && st.tl <= 10 && !st.d && !(st.cd > 0)) { x.font = 'bold 8px Rubik,sans-serif'; x.fillStyle = 'rgba(0,0,0,.5)'; x.beginPath(); x.arc(50, 50, 7, 0, 7); x.fill(); x.fillStyle = '#ffd23f'; x.fillText('⏱' + st.tl, 50, 50.5); }
     if (st.cd > 0) { x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(0, 0, 100, 100); x.font = 'bold 30px Rubik,sans-serif'; x.fillStyle = '#fff'; x.fillText(st.cd > 3 ? '' : String(Math.ceil(st.cd)), 50, 52); if (st.cd <= 0.9) { x.font = 'bold 14px Rubik,sans-serif'; } }
   }
   const stOf = S => Object.assign(E().snap(S), { cd: S.cd || 0 });
