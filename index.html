@@ -426,6 +426,10 @@ html.art .mm-b::after{content:none}
 .gt-buzz{background:linear-gradient(160deg,#5c6b7a,#2b3440)}
 .gt-maze{background:linear-gradient(160deg,#c98a4b,#8a5320)}
 
+.mode.daily{border-color:var(--acc)}
+.mode.daily.done{opacity:.8}
+.bd>canvas.base{position:absolute;inset:0;width:100%;height:100%;display:block}
+
 </style>
 </head>
 <body>
@@ -444,6 +448,7 @@ html.art .mm-b::after{content:none}
   <div class="wrap">
     <div class="modes" id="resumeBox"></div>
     <div class="games" id="gameGrid"></div>
+    <div class="modes"><button class="mode daily" id="mDaily"></button></div>
     <div class="modes">
       <button class="mode prime" id="mNet"><span class="ic">🌐</span><span><b data-t="mNet"></b><span data-t="mNetD"></span></span></button>
     </div>
@@ -2177,6 +2182,7 @@ he: {
   saveFail: 'השמירה נכשלה — הזיכרון בטלפון מלא', cancel: 'ביטול', ok: 'אישור', close: 'סגור', home: 'לבית', next: 'הבא', skip: 'דלג', letsPlay: 'יאללה, משחקים!',
   g_sl: 'סולמות ונחשים', g_ludo: 'לודו', g_c4: 'ארבע בשורה', g_ttt: 'איקס-עיגול', g_mem: 'זיכרון', g_dots: 'נקודות וקופסאות',
   g_bs: 'צוללות', g_dom: 'דומינו', opt_kids: 'לילדים', opt_face: 'מה מצויר על האבנים', face_dots: 'נקודות', face_pics: 'תמונות',
+  pressAgainExit: 'לחץ שוב כדי לצאת', daily: 'אתגר היום', dailyD: '{g} · שלב {n}', streak: '🔥 רצף {n} ימים', dailyDone: '✅ סיימת את האתגר של היום!', dailyNew: 'אתגר חדש מחר',
   g_match: 'התאמת קלפים', g_buzz: 'החוט החשמלי', g_maze: 'מבוך הכדורים', opt_stage: 'שלב', opt_ctrl: 'שליטה', ctrl_finger: 'אצבע', ctrl_tilt: 'הטיית הטלפון', stageN: 'שלב {n}',
   lvd_match_0: 'לוקח את הזמן — מתאים לקטנים', lvd_match_1: 'מסדר בקצב טוב', lvd_match_2: 'זריז מאוד', lvd_buzz_0: 'יד רועדת — נוגע הרבה', lvd_buzz_1: 'יד יציבה', lvd_buzz_2: 'יד של מנתח', lvd_maze_0: 'מגלגל לאט ומפיל כדורים', lvd_maze_1: 'מטה בעדינות', lvd_maze_2: 'אלוף ההטיות',
   ch_start: 'התחל!', ch_beat: 'הזמן לנצח: {t} ({n})', ch_playing: '{n} משחק עכשיו…', ch_waiting: 'התור של {n}', ch_waitAll: 'סיימת! מחכים שכולם יסיימו…', ch_giveup: 'לוותר', ch_giveQ: 'לוותר על הסיבוב הזה?', ch_fail: 'לא סיים', ch_failT: 'לא הפעם… נסה שוב!', ch_done: 'הצלחת!', ch_next: 'לשלב {n}', ch_again: 'שוב את השלב', ch_tiltNo: 'אין חיישן הטיה — משחקים עם האצבע',
@@ -2271,6 +2277,7 @@ en: {
   saveFail: 'Saving failed — the phone storage is full', cancel: 'Cancel', ok: 'OK', close: 'Close', home: 'Home', next: 'Next', skip: 'Skip', letsPlay: "Let's play!",
   g_sl: 'Snakes & Ladders', g_ludo: 'Ludo', g_c4: 'Four in a Row', g_ttt: 'Tic-Tac-Toe', g_mem: 'Memory', g_dots: 'Dots & Boxes',
   g_bs: 'Battleship', g_dom: 'Dominoes', opt_kids: 'kids', opt_face: 'On the tiles', face_dots: 'Dots', face_pics: 'Pictures',
+  pressAgainExit: 'Press back again to exit', daily: "Today's challenge", dailyD: '{g} · stage {n}', streak: '🔥 {n}-day streak', dailyDone: "✅ Today's challenge done!", dailyNew: 'A new one tomorrow',
   g_match: 'Match the Cards', g_buzz: 'Buzz Wire', g_maze: 'Ball Maze', opt_stage: 'Stage', opt_ctrl: 'Control', ctrl_finger: 'Finger', ctrl_tilt: 'Tilt the phone', stageN: 'Stage {n}',
   lvd_match_0: 'Takes its time — good for little ones', lvd_match_1: 'Steady pace', lvd_match_2: 'Very quick', lvd_buzz_0: 'Shaky hand — touches a lot', lvd_buzz_1: 'Steady hand', lvd_buzz_2: 'Surgeon hands', lvd_maze_0: 'Rolls slowly, drops balls', lvd_maze_1: 'Gentle tilting', lvd_maze_2: 'Tilt champion',
   ch_start: 'Start!', ch_beat: 'Time to beat: {t} ({n})', ch_playing: '{n} is playing…', ch_waiting: "{n}'s turn", ch_waitAll: 'Done! Waiting for everyone…', ch_giveup: 'Give up', ch_giveQ: 'Give up this round?', ch_fail: 'did not finish', ch_failT: 'Not this time… try again!', ch_done: 'You did it!', ch_next: 'Stage {n}', ch_again: 'This stage again', ch_tiltNo: 'No tilt sensor — playing with the finger',
@@ -2352,13 +2359,13 @@ en: {
   ru_dots: '<p>On your turn draw one line between two dots. Close a box (its fourth side) and it is yours — <b>and you draw again</b>. When every box is closed, most boxes wins.</p><p>Tip: don\'t draw a box\'s third side — that gives it to your friend!</p>'
 },
 ru: { subtitle: 'Играет вся семья!', mNet: 'Онлайн с семьёй', mNetD: 'Комната с кодом и голосом', mCpu: 'Против компьютера', mHot: 'Все на одном телефоне', rules: 'Правила', stats: 'Статистика', replays: 'Повторы', settings: 'Настройки', about: 'О программе', resume: 'Продолжить', cancel: 'Отмена', close: 'Закрыть', home: 'Домой', next: 'Далее', skip: 'Пропустить', letsPlay: 'Играем!',
-  g_match: 'Подбери карточки', g_buzz: 'Электропровод', g_maze: 'Лабиринт с шариками', g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
+  pressAgainExit: 'Нажмите ещё раз, чтобы выйти', daily: 'Задание дня', g_match: 'Подбери карточки', g_buzz: 'Электропровод', g_maze: 'Лабиринт с шариками', g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
   lv_kids: 'Для детей', lv_easy: 'Лёгкий', lv_med: 'Средний', lv_hard: 'Сложный', lv_top: 'Почти непобедимый', lv_perfect: 'Непобедимый', lv_elephant: 'Слоновья память' },
 es: { subtitle: '¡Juega toda la familia!', mNet: 'En línea con la familia', mNetD: 'Sala con código y voz', mCpu: 'Contra la computadora', mHot: 'Todos en un teléfono', rules: 'Reglas', stats: 'Estadísticas', replays: 'Repeticiones', settings: 'Ajustes', about: 'Acerca de', resume: 'Continuar', cancel: 'Cancelar', close: 'Cerrar', home: 'Inicio', next: 'Siguiente', skip: 'Saltar', letsPlay: '¡A jugar!',
-  g_match: 'Une las cartas', g_buzz: 'Cable eléctrico', g_maze: 'Laberinto de bolas', g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
+  pressAgainExit: 'Pulsa otra vez para salir', daily: 'Reto del día', g_match: 'Une las cartas', g_buzz: 'Cable eléctrico', g_maze: 'Laberinto de bolas', g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
   lv_kids: 'Para niños', lv_easy: 'Fácil', lv_med: 'Medio', lv_hard: 'Difícil', lv_top: 'Casi invencible', lv_perfect: 'Invencible', lv_elephant: 'Memoria de elefante' },
 ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع العائلة', mNetD: 'غرفة برمز وصوت', mCpu: 'ضد الحاسوب', mHot: 'الجميع على هاتف واحد', rules: 'القواعد', stats: 'إحصائيات', replays: 'إعادة', settings: 'الإعدادات', about: 'حول', resume: 'متابعة', cancel: 'إلغاء', close: 'إغلاق', home: 'الرئيسية', next: 'التالي', skip: 'تخطَّ', letsPlay: 'هيا نلعب!',
-  g_match: 'طابق البطاقات', g_buzz: 'السلك الكهربائي', g_maze: 'متاهة الكرات', g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
+  pressAgainExit: 'اضغط مرة أخرى للخروج', daily: 'تحدي اليوم', g_match: 'طابق البطاقات', g_buzz: 'السلك الكهربائي', g_maze: 'متاهة الكرات', g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
   lv_kids: 'سهل للأطفال', lv_easy: 'سهل', lv_med: 'متوسط', lv_hard: 'صعب', lv_top: 'شبه مستحيل', lv_perfect: 'لا يُهزم', lv_elephant: 'ذاكرة فيل' }
 };
 
@@ -2366,7 +2373,7 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
@@ -2419,16 +2426,23 @@ const THEMES = ['gold', 'silver', 'emerald', 'ruby', 'ocean'];
 const BSTYLES = ['bright', 'pastel', 'wood', 'contrast', 'theme'];
 
 /* ---------- screens + toast + overlays ---------- */
-let SCREEN = 'home';
-function show(id) {
+let SCREEN = 'home', NAV = [];
+// screens remember where they came from (the phone's back button and the ← button do the same thing)
+function show(id, back) {
+  if (!back && id !== SCREEN) { if (id === 'home') NAV = []; else { NAV.push(SCREEN); if (NAV.length > 12) NAV.shift(); } }
+  if (id === 'game') NAV = NAV.filter(s => s === 'home' || s === 'online');      // back from a game: home (or the online room)
   $$('.scr').forEach(s => s.classList.toggle('on', s.id === id)); SCREEN = id; window.scrollTo(0, 0);
+  if (typeof syncHistory === 'function') syncHistory();
   if (id === 'game') requestAnimationFrame(() => { if (typeof fitBoard === 'function') fitBoard(); });
 }
 let toastT = null;
 function toast(msg, ms) { const t = $('#toast'); t.innerHTML = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); }
 function overlay(html, cls) {
   const o = document.createElement('div'); o.className = 'ov ' + (cls || ''); o.innerHTML = '<div class="box">' + html + '</div>';
-  $('#ovs').appendChild(o); return o;
+  // the tap that opened this window sends a late "ghost" click that would land inside it — swallow clicks for half a second
+  const t0 = performance.now(), ghost = e => { if (performance.now() - t0 < 500) { e.preventDefault(); e.stopPropagation(); } else o.removeEventListener('click', ghost, true); };
+  o.addEventListener('click', ghost, true);
+  $('#ovs').appendChild(o); if (typeof syncHistory === 'function') syncHistory(); return o;
 }
 const closeOv = o => { if (o && o.parentNode) o.parentNode.removeChild(o); };
 const anyOv = () => $('#ovs').children.length > 0;
@@ -2438,6 +2452,31 @@ function confirmBox(msg, yes, cb) {
   o.querySelector('[data-n]').onclick = () => closeOv(o);
   o.querySelector('[data-y]').onclick = () => { closeOv(o); cb(); };
 }
+
+/* ---------- the phone's back button: one step back inside the app, never out by surprise ----------
+   A "guard" entry stays in the history (except for the 2 seconds after "press again to exit"). */
+const HIST = { guard: false, ignore: 0 }; let exitArm = 0;
+function syncHistory() {
+  const need = !exitArm;
+  try { if (need && !HIST.guard) { history.pushState({ fn: 1 }, ''); HIST.guard = true; } else if (!need && HIST.guard) { HIST.guard = false; HIST.ignore++; history.back(); } } catch (e) {}
+}
+function goBack() {
+  const to = NAV.pop() || 'home';
+  if (SCREEN === 'game' && CUR) { clearTimeout(CUR.botT); const el = $('#board'); if (el && el._run) { if (el._run.tone) el._run.tone.stop(); el._run = null; } }   // a run left by "back" is simply dropped (start again on return)
+  closeAllOv();
+  if (to === 'home') renderHome(); else if (to === 'online') renderNet(); else if (to === 'settings') renderSettings(); else if (to === 'stats') renderStats(); else if (to === 'replays') renderReplays();
+  show(to, true); if (typeof renderBubbles === 'function') renderBubbles();
+}
+addEventListener('popstate', () => {
+  if (HIST.ignore > 0) { HIST.ignore--; return; }
+  HIST.guard = false;
+  const top = $('#ovs').lastElementChild;
+  if (top && top.classList.contains('curtain')) goBack();                 // "pass the phone": back leaves the game, it never uncovers it
+  else if (top) { if (top.querySelector('.guide')) { ST.guided = true; saveST(); } top.remove(); }
+  else if (SCREEN !== 'home') goBack();
+  else { toast(T('pressAgainExit'), 2000); exitArm = setTimeout(() => { exitArm = 0; syncHistory(); }, 2000); }
+  syncHistory();
+});
 
 /* ---------- players: animals, colours, computer characters ---------- */
 const AVATARS = ['🦁', '🐼', '🐸', '🦊', '🐵', '🐨', '🐯', '🐰', '🐶', '🐱', '🦄', '🐙', '🐧', '🐢', '🦉', '🐻'];
@@ -3416,6 +3455,26 @@ function saveProg(g, n, res) {
   if (!res.ok) return; const P = progOf(g), L = GAMES[g].level(n), s = GAMES[g].stars(L, res);
   P.max = Math.max(P.max, n); P.st[n] = Math.max(P.st[n] || 0, s); if (!P.best[n] || res.t < P.best[n]) P.best[n] = res.t; LS.set('prog', PROG);
 }
+// today's challenge: the same game and stage for everybody on the same day (from the date, no server)
+const DAILY_GAMES = ['match', 'buzz', 'maze'];
+function dayKey(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function dailyOf(key) {
+  key = key || dayKey(); let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const days = Math.floor(Date.parse(key + 'T12:00:00') / 864e5), g = DAILY_GAMES[days % DAILY_GAMES.length], N = GAMES[g].LEVELS;
+  return { key, game: g, level: 2 + (h % Math.max(1, Math.floor(N * .55))) };
+}
+const DAILY = LS.get('daily', { last: '', streak: 0 });
+function dailyDone(res) {
+  const d = dailyOf(); if (!res.ok || DAILY.last === d.key) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  DAILY.streak = DAILY.last === dayKey(y) ? DAILY.streak + 1 : 1; DAILY.last = d.key; LS.set('daily', DAILY);
+}
+function renderDaily() {
+  const b = $('#mDaily'); if (!b) return; const d = dailyOf(), done = DAILY.last === d.key;
+  b.innerHTML = '<span class="ic">' + (done ? '✅' : '⭐') + '</span><span><b>' + T('daily') + ' · ' + GICON[d.game] + ' ' + esc(gname(d.game)) + '</b><span>' + (done ? T('dailyDone') + ' ' + T('dailyNew') : T('stageN', { n: iso(d.level) })) + (DAILY.streak && (done || DAILY.last === dayKey(new Date(Date.now() - 864e5))) ? ' · ' + T('streak', { n: iso(DAILY.streak) }) : '') + '</span></span>';
+  b.classList.toggle('done', done);
+  b.onclick = () => { const p = { kind: 'human', name: ST.name || T('you'), av: myAv() }; startLocal([p], Object.assign({}, GAMES[d.game].DEF, { level: d.level, daily: d.key, first: 0 }), d.game); };
+}
 const RUN = {
   seat: V => CUR && CUR.mode === 'net' ? V.me : V.turn,
   key: V => (CUR ? CUR.id : '') + ':' + RUN.seat(V),
@@ -3458,7 +3517,7 @@ const RUN = {
   finish(el, res) {
     const r = el._run; if (!r) return; el._run = null; el._doneKey = r.key;
     if (res.ok) { beep('win'); confetti(70); } else { beep('lose'); buzz(80); }
-    const V0 = curView(); if (V0 && (CUR.mode !== 'net' || V0.me >= 0)) { const h = V0.players[r.seat]; if (h && h.kind === 'human') saveProg(r.game, r.level, res); }
+    const V0 = curView(); if (V0 && (CUR.mode !== 'net' || V0.me >= 0)) { const h = V0.players[r.seat]; if (h && h.kind === 'human') { saveProg(r.game, r.level, res); if (V0.cfg.daily === dailyOf().key) dailyDone(res); } }
     let tries = 0;
     const send = () => { const V = curView(); if (!V || V.over) return; if (canAct(V)) { act({ res }); return; } if (++tries < 40) setTimeout(send, 250); };
     setTimeout(send, res.ok ? 600 : 300);
@@ -3710,6 +3769,15 @@ UI.buzz = (() => {
 })();
 
 /* ================= maze · tilt maze with steel balls ================= */
+// the same small mark on a ball and over its hole: dot · ring · bar · triangle
+function mazeMark(x, k, cx, cy, r, col) {
+  x.save(); x.fillStyle = col; x.strokeStyle = col; x.lineWidth = r * .55;
+  if (k === 0) { x.beginPath(); x.arc(cx, cy, r * .75, 0, 7); x.fill(); }
+  else if (k === 1) { x.beginPath(); x.arc(cx, cy, r * .8, 0, 7); x.stroke(); }
+  else if (k === 2) { x.fillRect(cx - r, cy - r * .3, r * 2, r * .6); }
+  else { x.beginPath(); x.moveTo(cx, cy - r); x.lineTo(cx + r * .9, cy + r * .7); x.lineTo(cx - r * .9, cy + r * .7); x.closePath(); x.fill(); }
+  x.restore();
+}
 UI.maze = (() => {
   const E = () => GAMES.maze, Lof = V => E().level(V.cfg.level);
   function paint(el, L, S, tilt) {
@@ -3717,7 +3785,7 @@ UI.maze = (() => {
     const wood = x.createLinearGradient(0, 0, L.W, L.H); wood.addColorStop(0, '#d9a066'); wood.addColorStop(1, '#b7773d'); x.fillStyle = wood; x.fillRect(0, 0, L.W, L.H);
     x.strokeStyle = 'rgba(90,50,15,.12)'; x.lineWidth = .5; for (let k = 3; k < L.H; k += 5) { x.beginPath(); x.moveTo(0, k); x.bezierCurveTo(30, k + 2, 70, k - 2, L.W, k + 1); x.stroke(); }
     // holes and traps
-    for (const o of L.holes) { const g = x.createRadialGradient(o.x - 1, o.y - 1, .5, o.x, o.y, L.RH); g.addColorStop(0, '#000'); g.addColorStop(1, '#3a2210'); x.fillStyle = g; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); }
+    for (const o of L.holes) { const g = x.createRadialGradient(o.x - 1, o.y - 1, .5, o.x, o.y, L.RH); g.addColorStop(0, '#000'); g.addColorStop(1, '#3a2210'); x.fillStyle = g; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); if (o.c >= 0) mazeMark(x, o.c, o.x, o.y - L.RH - 2.4, 1.3, L.BALLC[o.c]); }
     for (const o of L.traps) { x.fillStyle = '#120806'; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = '#ff1744'; x.lineWidth = .7; x.setLineDash([1.2, 1]); x.beginPath(); x.arc(o.x, o.y, L.RH + .4, 0, 7); x.stroke(); x.setLineDash([]); x.fillStyle = '#ff5252'; x.font = '4px sans-serif'; x.textAlign = 'center'; x.fillText('✕', o.x, o.y + 1.4); }
     // walls (raised wooden strips)
     x.lineCap = 'round';
@@ -3729,7 +3797,7 @@ UI.maze = (() => {
       if (b.fall > 0) continue; const R = b.inH >= 0 ? L.RB * .9 : L.RB;
       x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(b.x + sx, b.y + sy, R, 0, 7); x.fill();
       const g = x.createRadialGradient(b.x - R * .4, b.y - R * .45, R * .1, b.x, b.y, R); g.addColorStop(0, '#ffffff'); g.addColorStop(.35, '#c9d1d9'); g.addColorStop(1, '#4b5563'); x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, R, 0, 7); x.fill();
-      if (L.colors) { x.strokeStyle = L.BALLC[b.c]; x.lineWidth = .9; x.beginPath(); x.arc(b.x, b.y, R * .62, 0, 7); x.stroke(); }
+      if (L.colors) { x.strokeStyle = L.BALLC[b.c]; x.lineWidth = .9; x.beginPath(); x.arc(b.x, b.y, R * .62, 0, 7); x.stroke(); mazeMark(x, b.c, b.x, b.y, R * .32, L.BALLC[b.c]); }
     }
     // joystick (finger control)
     if (el._joy) { const j = el._joy; x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = .6; x.beginPath(); x.arc(j.x, j.y, 9, 0, 7); x.stroke(); x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.arc(j.x + j.gx * 9, j.y + j.gy * 9, 3, 0, 7); x.fill(); }
@@ -4228,7 +4296,7 @@ function bindGame() {
   $('#board').addEventListener('click', onBoardTap);
   $('#plist').addEventListener('click', e => { const b = e.target.closest('.pchip'); if (b && CUR) personaCard(curView(), +b.dataset.s); });
   $('#gMenu').onclick = gameMenu;
-  $('#gBack').onclick = () => { if (CUR) clearTimeout(CUR.botT); closeAllOv(); show('home'); renderBubbles(); renderHome(); };
+  $('#gBack').onclick = () => goBack();
   $('#bubbles').addEventListener('click', e => { const b = e.target.closest('[data-vm]'); if (b) { const bb = CUR.bubbles[b.dataset.vm]; if (bb && bb.url) new Audio(bb.url).play().catch(() => {}); } });
   let rt = null; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(fitBoard, 120); });
 }
@@ -4614,7 +4682,7 @@ function renderNet() {
   h += '<button class="btn wide" id="nLeave" style="border-color:var(--bad);color:var(--bad)">' + T('leaveRoom') + '</button>';
   B.innerHTML = h;
   const url = LINK ? LINK.inviteURL() : '';
-  $('#nWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(T('inviteMsg', { n: ST.name || '', c: code }) + ' ' + url), '_blank');
+  $('#nWa').onclick = () => { const u = 'https://wa.me/?text=' + encodeURIComponent(T('inviteMsg', { n: ST.name || '', c: code }) + ' ' + url); let w = null; try { w = window.open(u, '_blank'); } catch (e) {} if (!w) location.href = u; };
   $('#nCopy').onclick = () => { (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast(T('copied'))).catch(() => toast(esc(url), 5000)); };
   B.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const i = +b.dataset.rm; NET.bots.splice(i, 1); NET.bpe.splice(i, 1); lobbyChanged(); });
   const ab = $('#nAddBot'); if (ab) ab.onclick = () => { const s = $('#nBotLvl'); NET.bots.push(s ? +s.value : 0); lobbyChanged(); };
@@ -4679,7 +4747,7 @@ const TILE_ART = {
   dots: '<svg viewBox="0 0 90 90"><rect x="4" y="4" width="82" height="82" rx="12" fill="#fff"/><rect x="17" y="17" width="26" height="26" fill="#e8453c" opacity=".8"/><rect x="45" y="45" width="26" height="26" fill="#2f74d8" opacity=".8"/><g stroke-width="4" stroke-linecap="round"><path d="M15 15 H45 V45 H15 Z" stroke="#e8453c" fill="none"/><path d="M45 45 H75 V75 H45 Z" stroke="#2f74d8" fill="none"/><path d="M45 15 H75" stroke="#e8453c"/></g>' + [15, 45, 75].map(y => [15, 45, 75].map(x => '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#333"/>').join('')).join('') + '</svg>'
 };
 function renderHome() {
-  $('#verLbl').textContent = 'v' + APP_VERSION;
+  $('#verLbl').textContent = 'v' + APP_VERSION; renderDaily();
   $('#gameGrid').innerHTML = GAME_IDS.map(g => '<button class="gtile gt-' + g + '" data-g="' + g + '"><span class="np ltr">' + (GAMES[g].minP === GAMES[g].maxP ? GAMES[g].maxP : GAMES[g].minP + '–' + GAMES[g].maxP) + ' 👥</span><span class="art">' + (ART_ON && ART_TILES.includes(g) ? '<img class="tl" src="tile-' + g + '.webp" alt="" draggable="false" data-tg="' + g + '" onerror="this.outerHTML=TILE_ART[this.dataset.tg]">' : TILE_ART[g]) + '</span><b>' + esc(gname(g)) + '</b></button>').join('');
   $('#gameGrid').querySelectorAll('[data-g]').forEach(b => b.onclick = () => openSetup(b.dataset.g));
   const box = $('#resumeBox'); let h = '';
@@ -4931,8 +4999,8 @@ function openGuide() {
   $('#qAbout').onclick = () => { renderAbout(); show('about'); };
   $('#qTheme').onclick = () => { ST.theme = THEMES[(THEMES.indexOf(ST.theme) + 1) % THEMES.length]; saveST(); applyLook(); toast(T('theme') + ': ' + T('th_' + ST.theme), 1200); };
   $('#qMode').onclick = () => { ST.mode = ST.mode === 'day' ? 'night' : 'day'; saveST(); applyLook(); };
-  document.addEventListener('click', e => { if (e.target.closest('[data-home]')) { show('home'); renderHome(); } });
-  $('#netBack').onclick = () => { show('home'); renderHome(); };
+  document.addEventListener('click', e => { if (e.target.closest('[data-home]')) goBack(); });
+  $('#netBack').onclick = () => goBack();
   bindGame(); bindVoice();
   // browsers block sound until the first tap
   addEventListener('pointerdown', () => { try { if (AC && AC.state === 'suspended') AC.resume(); } catch (e) {} }, { passive: true });
@@ -4944,6 +5012,7 @@ function openGuide() {
   else if (!ST.guided && !q.get('noguide')) openGuide();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !q.get('nosw')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  syncHistory();
   window.__fn = { GAMES, FC, UI, get CUR() { return CUR; }, get NET() { return NET; }, get LINK() { return LINK; } };   // for automated tests
 })();
 
