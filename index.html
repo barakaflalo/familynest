@@ -6,10 +6,10 @@
 if (location.hostname === 'barakaflalo.github.io') location.replace('https://familynest-app.pages.dev/' + location.search + location.hash);</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FamilyNest · כל המשפחה משחקת!</title>
-<meta name="description" content="FamilyNest — 16 משחקי משפחה: סולמות ונחשים, לודו, ארבע בשורה, איקס-עיגול, זיכרון, נקודות וקופסאות, צוללות, דומינו, התאמת קלפים, החוט החשמלי, מבוך הכדורים, היפופוטמים רעבים, פיראט קופץ, צבעים וצלילים, לוטו תמונות ונחשו!. מול המחשב, בטלפון אחד או אונליין עם דיבור.">
+<meta name="description" content="FamilyNest — 17 משחקי משפחה: סולמות ונחשים, לודו, ארבע בשורה, איקס-עיגול, זיכרון, נקודות וקופסאות, צוללות, דומינו, התאמת קלפים, החוט החשמלי, מבוך הכדורים, היפופוטמים רעבים, פיראט קופץ, צבעים וצלילים, לוטו תמונות, נחשו! ומצא את ההבדלים. מול המחשב, בטלפון אחד או אונליין עם דיבור.">
 <meta name="theme-color" content="#0a0a0a">
 <meta property="og:title" content="FamilyNest · כל המשפחה משחקת!">
-<meta property="og:description" content="16 משחקי משפחה באפליקציה אחת — מול המחשב, בטלפון אחד או אונליין עם דיבור.">
+<meta property="og:description" content="17 משחקי משפחה באפליקציה אחת — מול המחשב, בטלפון אחד או אונליין עם דיבור.">
 <meta property="og:image" content="icon-512.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -525,6 +525,33 @@ html.art .mm-b::after{content:none}
 .gd-res{text-align:center;font-size:18px;margin:4px 0}.gd-res.ok{color:var(--ok)}.gd-res.no{color:var(--bad)}
 .gd-got{display:flex;gap:4px;justify-content:center}.gd-got img.ai{width:28px;height:28px}
 .bd-pirate .pr-boom{transform-box:fill-box;transform-origin:50% 50%;animation:ltPop .5s cubic-bezier(.2,.9,.3,1.5)}
+/* 1.7 art */
+.lt-art .lt-card{background:url(lotto-card.webp) center/100% 100% no-repeat;border-color:transparent;box-shadow:0 0 0 3px var(--pc)}
+.lt-art .lt-c{background:rgba(255,255,255,.75)}
+.lt-art2 .lt-st{background:var(--pc);-webkit-mask:url(lotto-stamp.webp) center/contain no-repeat;mask:url(lotto-stamp.webp) center/contain no-repeat;border-radius:0;inset:2%}
+.lt-art2 .lt-c.on .lt-st{opacity:.85}
+.lt-art2 .lt-c.on .lt-st::after{content:none}
+.lt-art3 .lt-now{background:url(lotto-caller.webp) center/100% 100% no-repeat;border-radius:50%;padding:0}
+.lt-art3 .lt-now img.ai{width:70%;height:70%}
+.lt-conf{position:absolute;left:10%;top:10%;width:80%;pointer-events:none;z-index:5;animation:ltConf 1.8s ease-out forwards}
+@keyframes ltConf{0%{transform:scale(.2);opacity:0}25%{transform:scale(1.1);opacity:1}100%{transform:scale(1.4);opacity:0}}
+.gw-bk{display:none}
+.gw-art .gw-c.down{opacity:1;filter:none;transform:scale(.92)}
+.gw-art .gw-c.down .gw-bk{display:block;position:absolute;inset:0;border-radius:12px;background:url(gw-back.webp) center/cover;opacity:.92}
+.gw-art .gw-c.down .gw-x{display:none}
+.gw-ask img.ai{width:1.5em;height:1.5em}
+.gd-easel{display:none}
+.gd-art .gd-easel{display:block;position:absolute;inset:0;background:url(gd-easel.webp) center/100% 100% no-repeat;pointer-events:none}
+.gd-art .gd-cvw{box-shadow:none}
+.gd-pen img.ai{width:80%;height:80%}
+/* 1.8 — spot the difference */
+.bd-diff .df{position:absolute;inset:0;display:flex;flex-direction:column;gap:2.6%}
+.df-pic{flex:1;width:100%;border-radius:12px;box-shadow:0 0 0 3px var(--acc);touch-action:manipulation;cursor:crosshair}
+.df.wait .df-pic{filter:blur(9px) saturate(.6)}
+.df-ok{fill:none;stroke:#3ddc84;stroke-width:1.1;animation:ltPop .35s cubic-bezier(.2,.9,.3,1.5);transform-box:fill-box;transform-origin:center}
+.df-hint{fill:none;stroke:#59c3ff;stroke-width:.8;stroke-dasharray:2 1.4;animation:ltGlow 1s infinite}
+.df-no path{stroke:#ff3b3b;stroke-width:1.2;stroke-linecap:round}
+.gt-diff{background:linear-gradient(160deg,#ffb347,#d4691a)}
 
 </style>
 </head>
@@ -2768,6 +2795,89 @@ GAMES.guess = (() => {
     anySeat: (G, s, a) => G.type === 'draw' && a && a.pick != null };
 })();
 
+/* ---- g_diff.js ---- */
+/* =====================================================================
+   FamilyNest 1.8 — Spot the difference (מצא את ההבדלים), a challenge game.
+   Two pictures, one above the other; find what changed in the lower one.
+   Nothing is drawn by hand per stage: every stage is BUILT from its number —
+   a theme (background) + pictures placed on it — and then the game changes
+   a few things in the second copy (gone, added, swapped, flipped, bigger,
+   smaller, turned, moved, another colour). 40 stages, easy → hard, the same
+   on every phone (CH.rng), so everyone races on the same pictures.
+   Pure: runs in Node (tests check every stage is fair).
+   ===================================================================== */
+GAMES.diff = (() => {
+  const W = 100, H = 75;
+  // themes: a background + the pictures that live there (emoji now, drawn pictures later: dfi-<theme>-<k>.webp)
+  const THEMES = [
+    { id: 'park', flip: [5, 7, 9, 13], turn: [0, 2, 3, 5, 7, 8, 9, 13], pale: [4], items: ['🌳', '🌸', '🐶', '🐱', '⚽', '🎈', '🦋', '🐦', '🏠', '🚲', '🌼', '🐞', '🍄', '🪁'] },
+    { id: 'sea', flip: [0, 3, 4, 6, 8, 10, 11], turn: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13], pale: [], items: ['🐠', '🐙', '🦀', '🐳', '⛵', '🐚', '🐢', '🦑', '🐡', '⭐', '🦈', '🐬', '🪸', '⚓'] },
+    { id: 'space', flip: [0, 1, 4, 6, 8, 11], turn: [0, 1, 3, 4, 5, 6, 8, 10, 11], pale: [8, 12], items: ['🚀', '🪐', '⭐', '👽', '🌙', '🛸', '☄️', '🌍', '🛰️', '🌟', '👾', '🔭', '🌑', '✨'] },
+    { id: 'kitchen', flip: [1, 2, 3, 4, 5, 6], turn: [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 13], pale: [8, 11], items: ['🍎', '🍌', '🍰', '☕', '🥕', '🧀', '🍕', '🍩', '🥛', '🍓', '🧁', '🥚', '🍪', '🍇'] },
+    { id: 'farm', flip: [0, 2, 3, 5, 6, 7, 9, 11, 13], turn: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13], pale: [2, 5, 8], items: ['🐄', '🐷', '🐔', '🚜', '🌻', '🐑', '🐴', '🌽', '🥚', '🐓', '🏡', '🐐', '🌾', '🦆'] },
+    { id: 'toys', flip: [1, 4, 6, 7, 8, 9, 10, 13], turn: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 13], pale: [2], items: ['🧸', '🚂', '🎲', '🪀', '🎨', '🤖', '🚗', '🧩', '🎺', '🪁', '🛴', '🎁', '🏀', '🦖'] }
+  ];
+  const LEVELS = 40;
+  const TYPES_EASY = ['gone', 'add', 'swap', 'color'], TYPES_MID = ['gone', 'add', 'swap', 'color', 'big', 'flip'], TYPES_HARD = ['gone', 'add', 'swap', 'color', 'big', 'small', 'flip', 'turn', 'move'];
+  const cache = {};
+  function level(n) {
+    n = Math.max(1, Math.min(LEVELS, n | 0)); if (cache[n]) return cache[n];
+    const R = CH.rng(n * 7919 + 13), th = THEMES[(n - 1) % THEMES.length], pick = a => a[Math.floor(R() * a.length)];
+    const count = Math.min(22, 8 + Math.floor(n * .36)), diffs = Math.min(7, 3 + Math.floor((n - 1) / 8));
+    const big = 15 - Math.min(5, n * .14);                               // pictures get smaller as stages go on
+    // place the pictures without much overlap (the top strip stays a little emptier)
+    const A = [];
+    for (let t = 0; A.length < count && t < 4000; t++) {
+      const s = big * (.72 + R() * .5), x = 6 + R() * (W - 12), y = 7 + R() * (H - 12);
+      if (A.some(o => Math.hypot(o.x - x, o.y - y) < (o.s + s) * .52)) continue;
+      A.push({ k: Math.floor(R() * th.items.length), x: +x.toFixed(2), y: +y.toFixed(2), s: +s.toFixed(2), r: 0, f: 0, h: 0 });
+    }
+    const B = A.map(o => Object.assign({}, o)), D = [];
+    const types = n <= 8 ? TYPES_EASY : n <= 20 ? TYPES_MID : TYPES_HARD, used = new Set();
+    const subtle = Math.min(1, n / LEVELS);
+    for (let d = 0, tries = 0; d < diffs && tries < 300; tries++) {
+      const type = pick(types);
+      if (type === 'add') {
+        // a new picture in an empty spot
+        const s = big * .8; let spot = null;
+        for (let t = 0; t < 200 && !spot; t++) { const x = 8 + R() * (W - 16), y = 8 + R() * (H - 14); if (!A.some(o => Math.hypot(o.x - x, o.y - y) < (o.s + s) * .62) && !D.some(q => Math.hypot(q.pts[0][0] - x, q.pts[0][1] - y) < 14)) spot = [x, y]; }
+        if (!spot) continue;
+        const o = { k: Math.floor(R() * th.items.length), x: +spot[0].toFixed(2), y: +spot[1].toFixed(2), s: +s.toFixed(2), r: 0, f: 0, h: 0, add: 1 };
+        B.push(o); D.push({ type, pts: [[o.x, o.y]], r: Math.max(7, s * .7) }); d++; continue;
+      }
+      const i = Math.floor(R() * A.length); if (used.has(i)) continue;
+      const a = A[i], b = B[i];
+      // only changes you can see: no flipping a round thing, no new colour for a white one
+      if ((type === 'flip' && !th.flip.includes(a.k)) || (type === 'turn' && !th.turn.includes(a.k)) || (type === 'color' && th.pale.includes(a.k))) continue;
+      if (D.some(q => q.pts.some(p => Math.hypot(p[0] - a.x, p[1] - a.y) < 13))) continue;
+      if (type === 'gone') b.gone = 1;
+      else if (type === 'swap') { let k = b.k; while (k === b.k) k = Math.floor(R() * th.items.length); b.k = k; }
+      else if (type === 'color') b.h = 110 + Math.floor(R() * 130);
+      else if (type === 'big') b.s = +(a.s * (1.6 - subtle * .25)).toFixed(2);
+      else if (type === 'small') b.s = +(a.s * (.55 + subtle * .1)).toFixed(2);
+      else if (type === 'flip') b.f = 1;
+      else if (type === 'turn') b.r = (R() < .5 ? -1 : 1) * Math.round(60 - subtle * 25);
+      else if (type === 'move') { const ang = R() * Math.PI * 2, dist = 11 - subtle * 3; const nx = Math.max(6, Math.min(W - 6, a.x + Math.cos(ang) * dist)), ny = Math.max(6, Math.min(H - 6, a.y + Math.sin(ang) * dist)); b.x = +nx.toFixed(2); b.y = +ny.toFixed(2); }
+      used.add(i);
+      const pts = [[a.x, a.y]]; if (type === 'move') pts.push([b.x, b.y]);
+      D.push({ type, pts, r: Math.max(6.5, a.s * .62) }); d++;
+    }
+    return (cache[n] = { n, theme: th.id, ti: (n - 1) % THEMES.length, A, B, diffs: D, count: A.length });
+  }
+  // which difference a tap (scene coordinates) finds, or -1
+  function hitAt(L, x, y, found) {
+    let best = -1, bd = 1e9;
+    L.diffs.forEach((d, i) => { if (found && found[i]) return; for (const p of d.pts) { const q = Math.hypot(p[0] - x, p[1] - y); if (q < d.r && q < bd) { bd = q; best = i; } } });
+    return best;
+  }
+  const E = CH.make('diff', {
+    LEVELS, level, penalty: 3000,
+    botTime: Lv => 5000 + Lv.diffs.length * 5200 + Lv.count * 260,
+    failP: Lv => 0.03 + Lv.diffs.length * 0.012, errs: Lv => .6 + Lv.diffs.length / 4
+  });
+  return Object.assign(E, { THEMES, W, H, hitAt });
+})();
+
 /* ---- texts.js ---- */
 /* =====================================================================
    FamilyNest — texts. Hebrew + English complete; Russian, Spanish, Arabic:
@@ -2790,6 +2900,10 @@ he: {
   g_bs: 'צוללות', g_dom: 'דומינו', opt_kids: 'לילדים', opt_face: 'מה מצויר על האבנים', face_dots: 'נקודות', face_pics: 'תמונות',
   g_hippo: 'היפופוטמים רעבים', g_pirate: 'פיראט קופץ', g_simon: 'צבעים וצלילים',
   g_lotto: 'לוטו תמונות', g_guess: 'נחשו!',
+  g_diff: 'מצא את ההבדלים',
+  ru_diff: '<p>שתי תמונות כמעט זהות, אחת מעל השנייה. <b>מצאו את ההבדלים</b> והקישו עליהם (על התמונה העליונה או התחתונה). משהו נעלם, נוסף, הוחלף, הפוך, גדול יותר, קטן יותר, מסובב, זז — או בצבע אחר.</p><p>הקשה במקום שאין בו הבדל מוסיפה 3 שניות. 💡 מסמן הבדל אחד (+5 שניות). 40 שלבים, מקל לקשה — כולם משחקים על אותן תמונות, לבד, מול המחשב או אונליין.</p>',
+  st_win_diff: 'עין חדה', std_win_diff: 'לנצח במצא את ההבדלים', st_eagle: 'עין של נשר', std_eagle: 'לסיים שלב 10 ומעלה בלי אף טעות',
+  lvd_diff_0: 'מוצא לאט', lvd_diff_1: 'מוצא בקצב טוב', lvd_diff_2: 'עין חדה מאוד!', diff_how: 'מצאו {n} הבדלים בין שתי התמונות. הקישו על ההבדל באחת התמונות.',
   ru_lotto: '<p>לכל שחקן כרטיס עם תמונות. הכרוז מוציא תמונה כל כמה שניות — <b>יש לך אותה? הקש עליה!</b> מי שמשלים ראשון שורה (לרוחב, לאורך או באלכסון) — או את כל הכרטיס — מנצח 🎉</p><p>אף אחד לא מחכה לתור: כולם מסמנים באותו זמן. על טלפון אחד כל אחד מקבל כרטיס בצד שלו. ⏭ מוציא את התמונה הבאה מיד. לקטנטנים אפשר לבחור "סימון אוטומטי" או "עזרה" שמאירה את התמונה.</p>',
   ru_guess: '<p><b>דמות:</b> לכל אחד דמות סודית. בתורך שואלים שאלת כן/לא ("יש לה כובע?", "הרקע כחול?") — המשחק עונה בדיוק ומוריד את הדמויות שלא מתאימות. כשאתה בטוח — הקש על דמות כדי לנחש. מי שמנחש ראשון מנצח.</p><p><b>מילה:</b> בכל תור אחד מקבל מילה סודית ומצייר אותה, והשאר מנחשים. בטלפון אחד הצייר מקיש מי ניחש; באונליין כל אחד בוחר תשובה בטלפון שלו — מי שמהיר יותר מקבל יותר נקודות. גם הצייר מקבל נקודה על כל מי שניחש.</p>',
   st_win_lotto: 'לוטו!', std_win_lotto: 'לנצח בלוטו תמונות', st_win_guess: 'בלש', std_win_guess: 'לנצח בנחשו!', st_detective: 'שרלוק', std_detective: 'לנחש דמות ב-4 שאלות או פחות', st_artist: 'אמן', std_artist: 'לצבור 5 נקודות במשחק ציור',
@@ -2911,6 +3025,10 @@ en: {
   g_bs: 'Battleship', g_dom: 'Dominoes', opt_kids: 'kids', opt_face: 'On the tiles', face_dots: 'Dots', face_pics: 'Pictures',
   g_hippo: 'Hungry Hippos', g_pirate: 'Pop-up Pirate', g_simon: 'Colours & Sounds',
   g_lotto: 'Picture Lotto', g_guess: 'Guess!',
+  g_diff: 'Spot the Difference',
+  ru_diff: '<p>Two almost identical pictures, one above the other. <b>Find the differences</b> and tap them (on the top or the bottom picture). Something is gone, added, swapped, flipped, bigger, smaller, turned, moved — or another colour.</p><p>A tap where there is no difference adds 3 seconds. 💡 circles one difference (+5 s). 40 stages, easy to hard — everyone plays the same pictures: alone, against the computer or online.</p>',
+  st_win_diff: 'Sharp eye', std_win_diff: 'Win at Spot the Difference', st_eagle: 'Eagle eye', std_eagle: 'Finish stage 10 or higher with no mistake',
+  lvd_diff_0: 'Finds them slowly', lvd_diff_1: 'Finds them at a good pace', lvd_diff_2: 'A very sharp eye!', diff_how: 'Find {n} differences between the two pictures. Tap the difference on either picture.',
   ru_lotto: '<p>Everyone has a card of pictures. Every few seconds the caller shows a picture — <b>have it? Tap it!</b> The first to complete a line (across, down or diagonal) — or the whole card — wins 🎉</p><p>Nobody waits for a turn: everyone marks at the same time. On one phone each player gets a card on their side. ⏭ shows the next picture at once. For little ones choose "auto marking" or "help", which makes the picture glow.</p>',
   ru_guess: '<p><b>Character:</b> each player has a secret character. On your turn ask a yes/no question ("a hat?", "a blue background?") — the game answers truthfully and turns down the characters that do not fit. When you are sure, tap a character to guess. The first to guess wins.</p><p><b>Word:</b> each turn one player gets a secret word and draws it; the others guess. On one phone the drawer taps who guessed; online everyone picks the answer on their own phone — faster means more points. The drawer gets a point for everyone who guessed.</p>',
   st_win_lotto: 'Lotto!', std_win_lotto: 'Win at Picture Lotto', st_win_guess: 'Detective', std_win_guess: 'Win at Guess!', st_detective: 'Sherlock', std_detective: 'Guess a character in 4 questions or fewer', st_artist: 'Artist', std_artist: 'Score 5 points in a drawing game',
@@ -3017,13 +3135,13 @@ en: {
   ru_dots: '<p>On your turn draw one line between two dots. Close a box (its fourth side) and it is yours — <b>and you draw again</b>. When every box is closed, most boxes wins.</p><p>Tip: don\'t draw a box\'s third side — that gives it to your friend!</p>'
 },
 ru: { subtitle: 'Играет вся семья!', mNet: 'Онлайн с семьёй', mNetD: 'Комната с кодом и голосом', mCpu: 'Против компьютера', mHot: 'Все на одном телефоне', rules: 'Правила', stats: 'Статистика', replays: 'Повторы', settings: 'Настройки', about: 'О программе', resume: 'Продолжить', cancel: 'Отмена', close: 'Закрыть', home: 'Домой', next: 'Далее', skip: 'Пропустить', letsPlay: 'Играем!',
-  g_hippo: 'Голодные бегемоты', g_lotto: 'Лото с картинками', g_guess: 'Угадай!', g_pirate: 'Прыгающий пират', g_simon: 'Цвета и звуки', pressAgainExit: 'Нажмите ещё раз, чтобы выйти', daily: 'Задание дня', g_match: 'Подбери карточки', g_buzz: 'Электропровод', g_maze: 'Лабиринт с шариками', g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
+  g_hippo: 'Голодные бегемоты', g_lotto: 'Лото с картинками', g_guess: 'Угадай!', g_diff: 'Найди отличия', g_pirate: 'Прыгающий пират', g_simon: 'Цвета и звуки', pressAgainExit: 'Нажмите ещё раз, чтобы выйти', daily: 'Задание дня', g_match: 'Подбери карточки', g_buzz: 'Электропровод', g_maze: 'Лабиринт с шариками', g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
   lv_kids: 'Для детей', lv_easy: 'Лёгкий', lv_med: 'Средний', lv_hard: 'Сложный', lv_top: 'Почти непобедимый', lv_perfect: 'Непобедимый', lv_elephant: 'Слоновья память' },
 es: { subtitle: '¡Juega toda la familia!', mNet: 'En línea con la familia', mNetD: 'Sala con código y voz', mCpu: 'Contra la computadora', mHot: 'Todos en un teléfono', rules: 'Reglas', stats: 'Estadísticas', replays: 'Repeticiones', settings: 'Ajustes', about: 'Acerca de', resume: 'Continuar', cancel: 'Cancelar', close: 'Cerrar', home: 'Inicio', next: 'Siguiente', skip: 'Saltar', letsPlay: '¡A jugar!',
-  g_hippo: 'Hipopótamos hambrientos', g_lotto: 'Lotería de dibujos', g_guess: '¡Adivina!', g_pirate: 'Pirata saltarín', g_simon: 'Colores y sonidos', pressAgainExit: 'Pulsa otra vez para salir', daily: 'Reto del día', g_match: 'Une las cartas', g_buzz: 'Cable eléctrico', g_maze: 'Laberinto de bolas', g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
+  g_hippo: 'Hipopótamos hambrientos', g_lotto: 'Lotería de dibujos', g_guess: '¡Adivina!', g_diff: 'Encuentra las diferencias', g_pirate: 'Pirata saltarín', g_simon: 'Colores y sonidos', pressAgainExit: 'Pulsa otra vez para salir', daily: 'Reto del día', g_match: 'Une las cartas', g_buzz: 'Cable eléctrico', g_maze: 'Laberinto de bolas', g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
   lv_kids: 'Para niños', lv_easy: 'Fácil', lv_med: 'Medio', lv_hard: 'Difícil', lv_top: 'Casi invencible', lv_perfect: 'Invencible', lv_elephant: 'Memoria de elefante' },
 ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع العائلة', mNetD: 'غرفة برمز وصوت', mCpu: 'ضد الحاسوب', mHot: 'الجميع على هاتف واحد', rules: 'القواعد', stats: 'إحصائيات', replays: 'إعادة', settings: 'الإعدادات', about: 'حول', resume: 'متابعة', cancel: 'إلغاء', close: 'إغلاق', home: 'الرئيسية', next: 'التالي', skip: 'تخطَّ', letsPlay: 'هيا نلعب!',
-  g_hippo: 'أفراس النهر الجائعة', g_lotto: 'لوتو الصور', g_guess: 'خمّن!', g_pirate: 'القرصان القافز', g_simon: 'ألوان وأصوات', pressAgainExit: 'اضغط مرة أخرى للخروج', daily: 'تحدي اليوم', g_match: 'طابق البطاقات', g_buzz: 'السلك الكهربائي', g_maze: 'متاهة الكرات', g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
+  g_hippo: 'أفراس النهر الجائعة', g_lotto: 'لوتو الصور', g_guess: 'خمّن!', g_diff: 'اعثر على الفروق', g_pirate: 'القرصان القافز', g_simon: 'ألوان وأصوات', pressAgainExit: 'اضغط مرة أخرى للخروج', daily: 'تحدي اليوم', g_match: 'طابق البطاقات', g_buzz: 'السلك الكهربائي', g_maze: 'متاهة الكرات', g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
   lv_kids: 'سهل للأطفال', lv_easy: 'سهل', lv_med: 'متوسط', lv_hard: 'صعب', lv_top: 'شبه مستحيل', lv_perfect: 'لا يُهزم', lv_elephant: 'ذاكرة فيل' }
 };
 
@@ -3031,12 +3149,12 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
 const FAST = /[?&]fast=1/.test(location.search);
-const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon', 'lotto', 'guess'];
+const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon', 'lotto', 'guess', 'diff'];
 
 /* ---------- storage shim: localStorage with an in-memory fallback ---------- */
 const LS = (() => {
@@ -3242,7 +3360,7 @@ function svgArt(file, cx, cy, size, emoji, fs, tr) {
 // pictures used inside boards (SVG <image> and canvas): only drawn once they loaded fine, so a missing
 // file never leaves a hole: the code drawing stays until then. A load redraws the board.
 // games that already have drawn art (home tile + screen background); the rest stay drawn in code
-const ART_GAMES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon'];
+const ART_GAMES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze', 'hippo', 'pirate', 'simon', 'lotto', 'guess'];
 const ART_IMG = {};
 let artRedrawT = 0;
 function artImg(f) {
@@ -3266,7 +3384,9 @@ const ART_GAME = {
   maze: () => ['maze-wood.webp', 'maze-ball.webp', 'maze-hole.webp', 'maze-trap.webp'],
   hippo: () => ['red', 'green', 'yellow', 'blue'].map(c => 'hippo-' + c + '.webp').concat(['hippo-head.webp', 'hippo-head-open.webp', 'hippo-pond.webp', 'hippo-ball.webp', 'hippo-gold.webp', 'hippo-grass.webp', 'hippo-yum.webp']),
   pirate: () => ['red', 'green', 'yellow', 'blue'].map(c => 'pirate-sword-' + c + '.webp').concat(['pirate-barrel.webp', 'pirate-head.webp', 'pirate-head-fly.webp', 'pirate-hole.webp', 'pirate-boom.webp']),
-  simon: () => ['simon-case.webp', 'simon-cap.webp', 'simon-glow.webp']
+  simon: () => ['simon-case.webp', 'simon-cap.webp', 'simon-glow.webp'],
+  lotto: () => ['lotto-card.webp', 'lotto-stamp.webp', 'lotto-caller.webp', 'lotto-confetti.webp'],
+  guess: () => ['cap', 'crown', 'flower', 'glasses', 'bow', 'scarf', 'frame', 'back', 'magnifier'].map(k => 'gw-' + k + '.webp').concat(['gd-paper.webp', 'gd-pencil.webp', 'gd-eraser.webp', 'gd-trash.webp', 'gd-easel.webp'])
 };
 function artPreload(g) { if (!ART_ON || !ART_GAMES.includes(g)) return; artImg('bg-' + g + '.webp'); (ART_GAME[g] ? ART_GAME[g]() : []).forEach(artImg); }
 // the screen behind the board
@@ -4174,7 +4294,7 @@ function saveProg(g, n, res) {
   P.max = Math.max(P.max, n); P.st[n] = Math.max(P.st[n] || 0, s); if (!P.best[n] || res.t < P.best[n]) P.best[n] = res.t; LS.set('prog', PROG);
 }
 // today's challenge: the same game and stage for everybody on the same day (from the date, no server)
-const DAILY_GAMES = ['match', 'buzz', 'maze'];
+const DAILY_GAMES = ['match', 'buzz', 'maze', 'diff'];
 function dayKey(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function dailyOf(key) {
   key = key || dayKey(); let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -4935,6 +5055,7 @@ UI.lotto = (() => {
       actAs(s, { m: i });
     },
     draw(el, V) {
+      el.classList.toggle('lt-art', artOK('lotto-card.webp')); el.classList.toggle('lt-art2', artOK('lotto-stamp.webp')); el.classList.toggle('lt-art3', artOK('lotto-caller.webp'));
       const last = V.order.length ? V.order[V.order.length - 1] : null;
       const now = el.querySelector('.lt-now'), hist = el.querySelector('.lt-hist'), k = el.querySelector('.lt-k');
       if (now) { const key = String(last); if (now.dataset.p !== key) { now.dataset.p = key; now.innerHTML = last == null ? '<span class="lt-wait">🎱</span>' : lpic(last); now.classList.remove('pop'); void now.offsetWidth; if (last != null) now.classList.add('pop'); } }
@@ -4949,7 +5070,7 @@ UI.lotto = (() => {
     },
     async anim(el, V, evs) {
       for (const e of evs) if (e.e === 'call') { beep('flip'); this.draw(el, Object.assign({}, V, { order: V.order.slice(0, e.k) })); await wait(220 * SPEED()); }
-      else if (e.e === 'bingo') { beep('win'); bubbleSeat(e.s, '🎉', 'big', 1500); toastBoard('🎉 ' + T('lt_bingo', { n: esc(pname(V, e.s)) }), 1800); }
+      else if (e.e === 'bingo') { if (artOK('lotto-confetti.webp')) { const f = document.createElement('img'); f.src = 'lotto-confetti.webp'; f.className = 'lt-conf'; el.appendChild(f); setTimeout(() => f.remove(), 1800); } beep('win'); bubbleSeat(e.s, '🎉', 'big', 1500); toastBoard('🎉 ' + T('lt_bingo', { n: esc(pname(V, e.s)) }), 1800); }
       this.draw(el, V);
     },
     tap() { return null; },
@@ -4969,12 +5090,21 @@ const GW_QI = { hat: '🎩', cap: '🧢', crown: '👑', flower: '🌸', glasses
 function charSVG(c) {
   const e = AVATARS[c.a] || '🐾';
   let g = '<rect x="0" y="0" width="100" height="100" rx="12" fill="' + GW_BG[c.bg] + '"/>' + svgArt('av-' + AV_IDS[c.a] + '.webp', 50, 54, 88, e, 58);
-  if (c.hat === 1) g += '<path d="M28,24 Q50,-2 72,24Z" fill="#e8453c" stroke="#7a1d18" stroke-width="2"/><rect x="24" y="21" width="34" height="6" rx="3" fill="#c62828" stroke="#7a1d18" stroke-width="1.5"/>';
+  const acc = f => artOK(f) ? '<image href="' + f + '" x="0" y="0" width="100" height="100"/>' : null;
+  let A;
+  if (c.hat === 1 && (A = acc('gw-cap.webp'))) g += A;
+  else if (c.hat === 2 && (A = acc('gw-crown.webp'))) g += A;
+  else if (c.hat === 3 && (A = acc('gw-flower.webp'))) g += A;
+  else if (c.hat === 1) g += '<path d="M28,24 Q50,-2 72,24Z" fill="#e8453c" stroke="#7a1d18" stroke-width="2"/><rect x="24" y="21" width="34" height="6" rx="3" fill="#c62828" stroke="#7a1d18" stroke-width="1.5"/>';
   else if (c.hat === 2) g += '<polygon points="31,25 31,9 40,17 50,4 60,17 69,9 69,25" fill="#ffd23f" stroke="#a87a00" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="19" r="3" fill="#e8453c"/>';
   else if (c.hat === 3) g += '<g transform="translate(72 16)">' + [0, 72, 144, 216, 288].map(a => '<ellipse cx="0" cy="-7" rx="5" ry="7" fill="#ff7ab8" stroke="#b03070" stroke-width="1.2" transform="rotate(' + a + ')"/>').join('') + '<circle r="4" fill="#ffd23f"/></g>';
-  if (c.gl) g += '<g fill="rgba(255,255,255,.18)" stroke="#1d1d1d" stroke-width="3"><circle cx="37" cy="48" r="10"/><circle cx="63" cy="48" r="10"/><path d="M47,47 Q50,44 53,47" fill="none"/></g>';
-  if (c.neck === 1) g += '<g fill="#e8453c" stroke="#7a1d18" stroke-width="1.5"><path d="M50,90 L36,83 L36,97Z"/><path d="M50,90 L64,83 L64,97Z"/><circle cx="50" cy="90" r="3.6"/></g>';
+  if (c.gl && (A = acc('gw-glasses.webp'))) g += A;
+  else if (c.gl) g += '<g fill="rgba(255,255,255,.18)" stroke="#1d1d1d" stroke-width="3"><circle cx="37" cy="48" r="10"/><circle cx="63" cy="48" r="10"/><path d="M47,47 Q50,44 53,47" fill="none"/></g>';
+  if (c.neck === 1 && (A = acc('gw-bow.webp'))) g += A;
+  else if (c.neck === 2 && (A = acc('gw-scarf.webp'))) g += A;
+  else if (c.neck === 1) g += '<g fill="#e8453c" stroke="#7a1d18" stroke-width="1.5"><path d="M50,90 L36,83 L36,97Z"/><path d="M50,90 L64,83 L64,97Z"/><circle cx="50" cy="90" r="3.6"/></g>';
   else if (c.neck === 2) g += '<rect x="24" y="84" width="52" height="9" rx="4.5" fill="#2f74d8" stroke="#16386b" stroke-width="1.5"/><rect x="58" y="88" width="8" height="12" rx="3" fill="#2f74d8" stroke="#16386b" stroke-width="1.5"/>';
+  if (artOK('gw-frame.webp')) g += '<image href="gw-frame.webp" x="0" y="0" width="100" height="100"/>';
   return '<svg viewBox="0 0 100 100" aria-hidden="true">' + g + '</svg>';
 }
 const gwQ = (k, yes) => T('gq_' + k) + (yes == null ? '' : yes ? ' — ' + T('gw_yes') : ' — ' + T('gw_no'));
@@ -4984,7 +5114,7 @@ UI.guess = (() => {
   /* ---------- character ---------- */
   function whoMount(el, V) {
     const n = V.chars.length;
-    el.innerHTML = '<div class="gw"><div class="gw-last"></div><div class="gw-grid" style="grid-template-columns:repeat(4,1fr)">' + V.chars.map((c, i) => '<button class="gw-c" data-i="' + i + '">' + charSVG(c) + '<i class="gw-x">✕</i></button>').join('')
+    el.innerHTML = '<div class="gw"><div class="gw-last"></div><div class="gw-grid" style="grid-template-columns:repeat(4,1fr)">' + V.chars.map((c, i) => '<button class="gw-c" data-i="' + i + '">' + charSVG(c) + '<i class="gw-x">✕</i><i class="gw-bk"></i></button>').join('')
       + '</div><div class="gw-bot"><div class="gw-mine"><small></small><div class="gw-sec"></div></div><button class="btn main gw-ask" id="gwAsk">❓ ' + T('gw_ask') + '</button></div></div>';
     el.querySelectorAll('.gw-c').forEach(b => b.addEventListener('click', () => whoGuess(el, +b.dataset.i)));
     el.querySelector('#gwAsk').onclick = () => whoAsk(el);
@@ -4995,7 +5125,8 @@ UI.guess = (() => {
     const sec = V.secret[s], box = el.querySelector('.gw-sec');
     if (box) { const key = String(sec); if (box.dataset.k !== key) { box.dataset.k = key; box.innerHTML = sec != null ? charSVG(V.chars[sec]) : '<span class="gw-q">?</span>'; } }
     const sm = el.querySelector('.gw-mine small'); if (sm) sm.textContent = T('gw_mine');
-    const ask = el.querySelector('#gwAsk'); if (ask) ask.disabled = !mine;
+    const ask = el.querySelector('#gwAsk'); if (ask) { ask.disabled = !mine; const ic = artOK('gw-magnifier.webp') ? '<img class="ai" src="gw-magnifier.webp" alt="">' : '❓'; const h = ic + ' ' + T('gw_ask'); if (ask.dataset.h !== h) { ask.dataset.h = h; ask.innerHTML = h; } }
+    el.classList.toggle('gw-art', artOK('gw-back.webp'));
     const left = down.filter(d => !d).length, L = V.last, last = el.querySelector('.gw-last');
     if (last) last.innerHTML = L ? '<span class="em">' + pemoji(V, L.s) + '</span> ' + (L.q ? esc(gwQ(L.q, L.yes)) + (L.yes ? ' ✅' : ' ❌') : (L.yes ? '🎯 ' : '🙈 ') + T(L.yes ? 'gw_hit' : 'gw_miss')) + ' · ' + T('gw_left', { n: iso(left) }) : T('gw_start', { n: iso(left) });
   }
@@ -5028,9 +5159,10 @@ UI.guess = (() => {
   const PEN = ['#1d1d1d', '#e8453c', '#2f74d8', '#2f9e4f', '#f4b81c', '#9b59d0', '#ffffff'];
   const wordOf = (V, w) => { const L = E().WORDS[V.cfg.age][w]; return L ? L[0] + ' ' + (LANG_NOW() === 'he' ? L[1] : L[2]) : '?'; };
   const LANG_NOW = () => (typeof ST !== 'undefined' && ST.lang) || 'he';
+  const ic = (f, e) => artOK(f) ? '<img class="ai" src="' + f + '" alt="">' : e;
   const keyOf = V => V.drawn + ':' + (V.swapped ? 1 : 0);
   function drawMount(el, V) {
-    el.innerHTML = '<div class="gd"><div class="gd-top"><span class="gd-word"></span><span class="gd-time ltr"></span></div><div class="gd-cvw"><canvas class="gd-cv"></canvas><div class="gd-rev hide"></div></div><div class="gd-tools"></div><div class="gd-ans"></div></div>';
+    el.innerHTML = '<div class="gd"><div class="gd-top"><span class="gd-word"></span><span class="gd-time ltr"></span></div><div class="gd-cvw"><canvas class="gd-cv"></canvas><i class="gd-easel"></i><div class="gd-rev hide"></div></div><div class="gd-tools"></div><div class="gd-ans"></div></div>';
     el._strokes = []; el._key = null; el._pen = 0; el._wide = 0;
     const cv = el.querySelector('canvas');
     cv.addEventListener('pointerdown', e => penDown(el, e)); cv.addEventListener('pointermove', e => penMove(el, e)); cv.addEventListener('pointerup', () => penUp(el)); cv.addEventListener('pointercancel', () => penUp(el));
@@ -5057,7 +5189,7 @@ UI.guess = (() => {
     const cv = el.querySelector('canvas'); if (!cv) return; const w = cv.clientWidth, dpr = Math.min(2.5, window.devicePixelRatio || 1);
     if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr); }
     const x = cv.getContext('2d'); x.setTransform(cv.width / 1000, 0, 0, cv.height / 1000, 0, 0);
-    x.fillStyle = '#fffdf6'; x.fillRect(0, 0, 1000, 1000); x.lineCap = 'round'; x.lineJoin = 'round';
+    const paper = artImg('gd-paper.webp'); if (paper) { const pt = x.createPattern(paper, 'repeat'); x.fillStyle = pt; } else x.fillStyle = '#fffdf6'; x.fillRect(0, 0, 1000, 1000); x.lineCap = 'round'; x.lineJoin = 'round';
     for (const st of el._strokes) { if (!st || !st.p.length) continue; x.strokeStyle = PEN[st.c] || '#000'; x.lineWidth = st.w; x.beginPath(); x.moveTo(st.p[0], st.p[1]); if (st.p.length === 2) x.lineTo(st.p[0] + .1, st.p[1]); for (let k = 2; k < st.p.length; k += 2) x.lineTo(st.p[k], st.p[k + 1]); x.stroke(); }
   }
   function drawDraw(el, V) {
@@ -5071,7 +5203,7 @@ UI.guess = (() => {
     else top.innerHTML = '🎨 ' + T('gd_was') + ' <b class="gd-w">' + esc(wordOf(V, V.word)) + '</b>';
     const pk = top.querySelector('#gdPeek'); if (pk) { const showW = on => { pk.textContent = on ? wordOf(V, V.word) : '👁 ' + T('gd_peek'); }; pk.onpointerdown = () => showW(true); pk.onpointerup = pk.onpointerleave = () => showW(false); }
     const sw = top.querySelector('#gdSwap'); if (sw) sw.onclick = () => { act({ swap: 1 }); };
-    tools.innerHTML = me && V.phase === 'draw' ? PEN.map((c, k) => '<button class="gd-pen' + (el._pen === k ? ' on' : '') + '" data-pen="' + k + '" style="--pen:' + c + '">' + (k === 6 ? '🧽' : '') + '</button>').join('') + '<button class="gd-pen gd-w2' + (el._wide ? ' on' : '') + '" data-wide>✏️</button><button class="gd-pen" data-clr>🗑️</button>' : '';
+    tools.innerHTML = me && V.phase === 'draw' ? PEN.map((c, k) => '<button class="gd-pen' + (el._pen === k ? ' on' : '') + '" data-pen="' + k + '" style="--pen:' + c + '">' + (k === 6 ? ic('gd-eraser.webp', '🧽') : '') + '</button>').join('') + '<button class="gd-pen gd-w2' + (el._wide ? ' on' : '') + '" data-wide>' + ic('gd-pencil.webp', '✏️') + '</button><button class="gd-pen" data-clr>' + ic('gd-trash.webp', '🗑️') + '</button>' : '';
     tools.querySelectorAll('[data-pen]').forEach(b => b.onclick = () => { el._pen = +b.dataset.pen; drawDraw(el, curView()); });
     const wb = tools.querySelector('[data-wide]'); if (wb) wb.onclick = () => { el._wide = el._wide ? 0 : 1; drawDraw(el, curView()); };
     const cb = tools.querySelector('[data-clr]'); if (cb) cb.onclick = () => clearCv(el, true);
@@ -5092,6 +5224,7 @@ UI.guess = (() => {
     const nb = ans.querySelector('[data-none]'); if (nb) nb.onclick = () => act({ none: 1 });
     ans.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { if (ans.querySelector('.locked')) return; b.classList.add('on'); actAs(V.me, { pick: +b.dataset.pick }); });
     const nx = ans.querySelector('[data-next]'); if (nx) nx.onclick = () => act({ next: 1 });
+    el.classList.toggle('gd-art', artOK('gd-easel.webp'));
     rev.classList.toggle('hide', V.phase !== 'show'); if (V.phase === 'show') rev.innerHTML = '<span>' + esc(wordOf(V, V.word)) + '</span>';
     paintCv(el); tick(el);
   }
@@ -5132,6 +5265,82 @@ UI.guess = (() => {
     tap() { return null; },
     bar: (V, mine) => '<button class="dieBtn" disabled><span style="font-size:26px">' + pemoji(V, V.turn) + '</span><span>' + (V.over ? T('gameOver') : V.type === 'who' ? (mine ? T('gw_your') : T('turnOf', { n: esc(pname(V, V.turn)) })) : V.phase === 'show' ? T('gd_round', { n: iso(V.round), m: iso(V.cfg.rounds) }) : T('gd_drawing', { n: esc(pname(V, V.turn)) })) + '</span></button>',
     status: () => ''
+  };
+})();
+
+/* ================= Spot the difference ================= */
+UI.diff = (() => {
+  const E = () => GAMES.diff, Lof = V => E().level(V.cfg.level);
+  // the background of a theme (a drawn picture when there is one)
+  function bgSVG(L) {
+    const id = L.theme, f = 'df-bg-' + id + '.webp';
+    if (ART_GAMES.includes('diff') && artOK(f)) return '<image href="' + f + '" x="0" y="0" width="100" height="75" preserveAspectRatio="xMidYMid slice"/>';
+    const G = (a, b) => '<defs><linearGradient id="dg' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient></defs><rect width="100" height="75" fill="url(#dg' + id + ')"/>';
+    switch (id) {
+      case 'park': return G('#8fd3ff', '#d9f3ff') + '<path d="M0,48 Q25,42 50,48 T100,46 L100,75 L0,75Z" fill="#7ccf6a"/><path d="M0,58 Q30,54 60,60 T100,58 L100,75 L0,75Z" fill="#5fb85a"/>';
+      case 'sea': return G('#4fb6ec', '#155b9a') + '<path d="M0,66 Q20,62 40,66 T80,65 T100,66 L100,75 L0,75Z" fill="#f1d9a0"/>' + [[12, 20], [30, 10], [70, 18], [88, 30], [55, 40]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="1.2" fill="none" stroke="#fff" stroke-width=".4" opacity=".6"/>').join('');
+      case 'space': return G('#0b0f2e', '#28196b') + [[8, 8], [22, 30], [40, 12], [60, 60], [78, 22], [92, 50], [15, 64], [50, 34], [70, 70], [33, 52]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r=".5" fill="#fff" opacity=".8"/>').join('');
+      case 'kitchen': return G('#fff1d6', '#ffe2b8') + '<rect x="0" y="50" width="100" height="25" fill="#c98a4b"/><rect x="0" y="50" width="100" height="2" fill="#8a5320"/>' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => '<line x1="' + k * 10 + '" y1="0" x2="' + k * 10 + '" y2="50" stroke="#f3d6a8" stroke-width=".4"/>').join('');
+      case 'farm': return G('#a6dcff', '#e6f6ff') + '<rect x="0" y="44" width="100" height="31" fill="#c7e27a"/>' + [6, 18, 30, 42, 54, 66, 78, 90].map(x => '<rect x="' + x + '" y="38" width="1.6" height="9" fill="#a0632e"/>').join('') + '<rect x="0" y="40" width="100" height="1.4" fill="#a0632e"/>';
+      default: return G('#ffd3e6', '#f7b0cf') + [0, 1, 2, 3, 4].map(k => '<circle cx="' + (10 + k * 20) + '" cy="' + (k % 2 ? 60 : 20) + '" r="9" fill="#fff" opacity=".18"/>').join('');
+    }
+  }
+  function itemSVG(L, o, th) {
+    if (o.gone) return '';
+    const f = 'dfi-' + L.theme + '-' + String(o.k).padStart(2, '0') + '.webp', tr = 'translate(' + o.x + ' ' + o.y + ')' + (o.r ? ' rotate(' + o.r + ')' : '') + (o.f ? ' scale(-1 1)' : ''), st = o.h ? ' style="filter:hue-rotate(' + o.h + 'deg) saturate(1.3)"' : '';
+    if (ART_GAMES.includes('diff') && artOK(f)) return '<g transform="' + tr + '"' + st + '><image href="' + f + '" x="' + (-o.s / 2) + '" y="' + (-o.s / 2) + '" width="' + o.s + '" height="' + o.s + '"/></g>';
+    return '<g transform="' + tr + '"' + st + '><text x="0" y="0" font-size="' + (o.s * .86).toFixed(2) + '" text-anchor="middle" dominant-baseline="central">' + th.items[o.k] + '</text></g>';
+  }
+  function pictureSVG(L, items, which) {
+    const th = E().THEMES[L.ti];
+    return '<svg class="df-pic" data-w="' + which + '" viewBox="0 0 100 75" preserveAspectRatio="none"><clipPath id="dfc' + which + '"><rect width="100" height="75" rx="3"/></clipPath><g clip-path="url(#dfc' + which + ')">' + bgSVG(L) + items.map(o => itemSVG(L, o, th)).join('') + '</g><g class="df-marks"></g></svg>';
+  }
+  function marks(el) {
+    const L = el._L, r = el._run, found = r ? r.found : el._found || [], hint = r ? r.hintI : -1;
+    let h = '';
+    L.diffs.forEach((d, i) => { if (found[i]) h += d.pts.map(p => '<circle class="df-ok" cx="' + p[0] + '" cy="' + p[1] + '" r="' + (d.r * .95).toFixed(2) + '"/>').join(''); else if (i === hint) h += '<circle class="df-hint" cx="' + d.pts[0][0] + '" cy="' + d.pts[0][1] + '" r="' + (d.r * 1.3).toFixed(2) + '"/>'; });
+    if (el._miss) h += '<g class="df-no" transform="translate(' + el._miss[0] + ' ' + el._miss[1] + ')"><path d="M-3,-3L3,3M3,-3L-3,3"/></g>';
+    el.querySelectorAll('.df-marks').forEach(g => { g.innerHTML = h; });
+    const x = $('#chX'); if (x && r) x.textContent = '🔍 ' + found.filter(Boolean).length + '/' + L.diffs.length + (r.x ? ' · ✋' + r.x : '');
+  }
+  return {
+    xIcon: '✋', hint: true,
+    aspect: () => 100 / (75 * 2 + 4),
+    color: (V, s) => s,
+    chip: (V, s) => { const r = V.res && V.res[s]; return r ? (r.ok ? '⏱<span class="ltr">' + RUN.fmt(r.t) + '</span>' : '✗') : ''; },
+    stageInfo: V => { const L = Lof(V); return '🔍 × ' + iso(L.diffs.length); },
+    how: V => T('diff_how', { n: iso(Lof(V).diffs.length) }),
+    mount(el, V) {
+      const L = Lof(V); el._L = L; el._run = null; el._found = [];
+      el.innerHTML = '<div class="df' + (V.over ? '' : ' wait') + '">' + pictureSVG(L, L.A, 'a') + pictureSVG(L, L.B, 'b') + '</div><div class="ch-ov hide"></div>';
+      el.querySelectorAll('.df-pic').forEach(sv => sv.addEventListener('pointerdown', e => this.tapPic(el, sv, e)));
+      this.draw(el, V);
+    },
+    size() {},
+    draw(el, V, cx) {
+      cx = cx || this._cx || {};
+      const box = el.querySelector('.df'); if (box) box.classList.toggle('wait', !el._run && !V.over);
+      if (V.over && el._L) { el._found = el._L.diffs.map(() => 1); }
+      marks(el); RUN.card(el, V, cx, this);
+    },
+    begin(el, V) { RUN.start(el, V, { found: el._L.diffs.map(() => 0), hintI: -1 }); el.querySelector('.df').classList.remove('wait'); marks(el); this.loop(el); },
+    loop(el) { if (!el._run) return; RUN.tick(el); requestAnimationFrame(() => this.loop(el)); },
+    tapPic(el, sv, e) {
+      const r = el._run; if (!r) return; e.preventDefault();
+      const b = sv.getBoundingClientRect(), x = (e.clientX - b.left) / b.width * 100, y = (e.clientY - b.top) / b.height * 75;
+      const i = E().hitAt(el._L, x, y, r.found);
+      if (i >= 0) { r.found[i] = 1; if (r.hintI === i) r.hintI = -1; beep('match'); buzz(15); el._miss = null; marks(el); if (r.found.every(Boolean)) this.end(el, true); return; }
+      // a tap on something already found is not a mistake
+      if (E().hitAt(el._L, x, y, null) >= 0) return;
+      r.x++; beep('err'); buzz(40); el._miss = [x, y]; marks(el); clearTimeout(el._missT); el._missT = setTimeout(() => { el._miss = null; marks(el); }, 600);
+    },
+    // a hint circles one difference (+5 s)
+    hint(el) { const r = el._run; if (!r) return; const i = r.found.findIndex(f => !f); if (i < 0) return; r.hintI = i; r.t0 -= 5000; beep('flip'); marks(el); },
+    end(el, ok) { const r = el._run; if (!r) return; const t = performance.now() - r.t0; el._found = r.found.slice(); RUN.finish(el, { ok, t, x: r.x, p: r.found.filter(Boolean).length / r.found.length }); marks(el); },
+    async anim(el, V, evs) { await chAnim(el, V, evs, this); },
+    tap() { return null; },
+    status: () => '',
+    bar(V) { return RUN.bar(V, this); }, bindBar() { RUN.bindBar(this); }
   };
 })();
 
@@ -5730,9 +5939,9 @@ function endTalk(V) {
 
 /* ---------- stickers (achievements) ---------- */
 const STICKERS = [
-  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'], ['win_bs', '🚢'], ['win_dom', '🀄'], ['win_match', '🧩'], ['win_buzz', '⚡'], ['win_maze', '⚪'], ['win_hippo', '🦛'], ['win_pirate', '🏴‍☠️'], ['win_simon', '🎵'], ['win_lotto', '🎱'], ['win_guess', '🕵️'],
+  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'], ['win_bs', '🚢'], ['win_dom', '🀄'], ['win_match', '🧩'], ['win_buzz', '⚡'], ['win_maze', '⚪'], ['win_hippo', '🦛'], ['win_pirate', '🏴‍☠️'], ['win_simon', '🎵'], ['win_lotto', '🎱'], ['win_guess', '🕵️'], ['win_diff', '🔍'],
   ['ladders3', '🪜'], ['survivor', '💪'], ['space', '🚀'], ['capper', '💥'], ['three6', '😱'],
-  ['beatOwl', '🦉'], ['beatTop', '🥇'], ['perfectDraw', '🤝'], ['elephant', '🐘'], ['memAce', '🧠'], ['boxes5', '📦'], ['simon10', '🧠'], ['pirate4', '🗡️'], ['detective', '🔎'], ['artist', '🎨'],
+  ['beatOwl', '🦉'], ['beatTop', '🥇'], ['perfectDraw', '🤝'], ['elephant', '🐘'], ['memAce', '🧠'], ['boxes5', '📦'], ['simon10', '🧠'], ['pirate4', '🗡️'], ['detective', '🔎'], ['artist', '🎨'], ['eagle', '🦅'],
   ['family', '👨‍👩‍👧'], ['online', '🌐'], ['allGames', '🌈'], ['games10', '🎉'], ['games50', '🌟']
 ];
 let STK = LS.get('stickers', {});
@@ -5771,6 +5980,7 @@ function checkStickers(V) {
     if (V.game === 'pirate' && won && V.players.length >= 4) earn('pirate4', got);
     if (V.game === 'guess' && V.type === 'who' && won && V.qn[me] <= 4) earn('detective', got);
     if (V.game === 'guess' && V.type === 'draw' && V.score[me] >= 5) earn('artist', got);
+    if (V.game === 'diff' && V.res && V.res[me] && V.res[me].ok && !V.res[me].x && V.cfg.level >= 10) earn('eagle', got);
   }
   if (got.length) LS.set('stickers', STK);
   return got;
@@ -6047,7 +6257,7 @@ function bindVoice() {
 /* =====================================================================
    FamilyNest — screens: home · setup · settings · stats · replays · rules · about · guide
    ===================================================================== */
-const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄', match: '🧩', buzz: '⚡', maze: '⚪', hippo: '🦛', pirate: '🏴‍☠️', simon: '🎵', lotto: '🎱', guess: '🕵️' };
+const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄', match: '🧩', buzz: '⚡', maze: '⚪', hippo: '🦛', pirate: '🏴‍☠️', simon: '🎵', lotto: '🎱', guess: '🕵️', diff: '🔍' };
 const ART_TILES = ART_GAMES;      // games that have a drawn home tile
 // computer levels per game: [level, text key, stars] — only levels that passed the measurements
 function levelsOf(game, cfg, n) {
@@ -6084,6 +6294,7 @@ const TILE_ART = {
   simon: '<svg viewBox="0 0 110 90"><circle cx="55" cy="45" r="41" fill="#141824"/>' + ['#2fbf4f', '#e8453c', '#f4c21c', '#2f74d8'].map((c, k) => { const a0 = -Math.PI * 3 / 4 + k * Math.PI / 2 + .06, a1 = a0 + Math.PI / 2 - .12, p = (r, a) => (55 + r * Math.cos(a)).toFixed(1) + ',' + (45 + r * Math.sin(a)).toFixed(1); return '<path d="M' + p(38, a0) + ' A38,38 0 0,1 ' + p(38, a1) + ' L' + p(15, a1) + ' A15,15 0 0,0 ' + p(15, a0) + 'Z" fill="' + c + '"' + (k === 1 ? ' style="filter:brightness(1.4)"' : ' opacity=".8"') + '/>'; }).join('') + '<circle cx="55" cy="45" r="11" fill="#1d2230"/><text x="55" y="50" text-anchor="middle" font-size="12" fill="#fff">♪</text></svg>',
   lotto: '<svg viewBox="0 0 110 90"><rect x="10" y="10" width="62" height="70" rx="8" fill="#fff8e8" stroke="#b0306a" stroke-width="3"/>' + [0, 1, 2].map(r => [0, 1, 2].map(c => '<rect x="' + (15 + c * 19) + '" y="' + (16 + r * 21) + '" width="16" height="18" rx="4" fill="' + ((r + c) % 2 ? '#ffe0ec' : '#fff') + '"/>' + ((r === 1) ? '<circle cx="' + (23 + c * 19) + '" cy="' + (25 + r * 21) + '" r="7" fill="#e8453c" opacity=".6"/>' : '')).join('')).join('') + '<line x1="16" y1="46" x2="66" y2="46" stroke="#ffb300" stroke-width="3" stroke-linecap="round"/><circle cx="86" cy="34" r="16" fill="#3b2a6b" stroke="#ffd23f" stroke-width="3"/><text x="86" y="40" text-anchor="middle" font-size="16">🐶</text></svg>',
   guess: '<svg viewBox="0 0 110 90">' + [[8, '#ffc4c4'], [38, '#bcd8ff'], [68, '#c6f0c4']].map(([x, c], k) => '<g transform="translate(' + x + ' ' + (k === 1 ? 14 : 22) + ')"><rect width="34" height="44" rx="6" fill="' + c + '" stroke="#5a3d1e" stroke-width="1.5"' + (k === 2 ? ' opacity=".45"' : '') + '/><text x="17" y="30" text-anchor="middle" font-size="22"' + (k === 2 ? ' opacity=".45"' : '') + '>' + ['🐸', '🦊', '🐼'][k] + '</text></g>').join('') + '<circle cx="62" cy="62" r="13" fill="none" stroke="#5a3d1e" stroke-width="4"/><line x1="71" y1="71" x2="84" y2="84" stroke="#5a3d1e" stroke-width="6" stroke-linecap="round"/><text x="96" y="22" font-size="16" fill="#fff" font-weight="700">?</text></svg>',
+  diff: '<svg viewBox="0 0 110 90">' + [6, 48].map((y, k) => '<g transform="translate(14 ' + y + ')"><rect width="82" height="36" rx="6" fill="#8fd3ff" stroke="#fff" stroke-width="2"/><path d="M0,26 Q20,20 41,26 T82,24 L82,36 L0,36Z" fill="#7ccf6a"/><text x="16" y="24" font-size="15">🌳</text><text x="44" y="22" font-size="12">' + (k ? '🐱' : '🐶') + '</text>' + (k ? '' : '<text x="64" y="16" font-size="11">☀️</text>') + '</g>').join('') + '<circle cx="62" cy="64" r="9" fill="none" stroke="#3ddc84" stroke-width="2.5"/><circle cx="84" cy="56" r="9" fill="none" stroke="#3ddc84" stroke-width="2.5" stroke-dasharray="3 2"/></svg>',
   dots: '<svg viewBox="0 0 90 90"><rect x="4" y="4" width="82" height="82" rx="12" fill="#fff"/><rect x="17" y="17" width="26" height="26" fill="#e8453c" opacity=".8"/><rect x="45" y="45" width="26" height="26" fill="#2f74d8" opacity=".8"/><g stroke-width="4" stroke-linecap="round"><path d="M15 15 H45 V45 H15 Z" stroke="#e8453c" fill="none"/><path d="M45 45 H75 V75 H45 Z" stroke="#2f74d8" fill="none"/><path d="M45 15 H75" stroke="#e8453c"/></g>' + [15, 45, 75].map(y => [15, 45, 75].map(x => '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#333"/>').join('')).join('') + '</svg>'
 };
 function renderHome() {
@@ -6132,7 +6343,7 @@ function optionsEditor(el, game, cfg, n, onChange) {
       const P = progOf(game), N = GAMES[game].LEVELS, open = P.max + 3;
       if (cfg.level > Math.max(open, 1)) cfg.level = Math.min(N, open);
       h += '<label class="f">' + T('opt_stage') + '<div class="stg">' + Array.from({ length: N }, (_, k) => { const n = k + 1, lock = n > open; return '<button data-stg="' + n + '"' + (cfg.level === n ? ' class="on"' : '') + (lock ? ' disabled' : '') + '><b class="ltr">' + n + '</b><small>' + (lock ? '🔒' : '⭐'.repeat(P.st[n] || 0) || '·') + '</small></button>'; }).join('') + '</div></label>';
-      if (game !== 'match') h += '<label class="f" style="margin-top:8px">' + T('opt_ctrl') + segHTML('ctrl', [['finger', '👆 ' + T('ctrl_finger')], ['tilt', '📱 ' + T('ctrl_tilt')]], cfg.ctrl || GAMES[game].DEF.ctrl) + '</label>';
+      if (game !== 'match' && game !== 'diff') h += '<label class="f" style="margin-top:8px">' + T('opt_ctrl') + segHTML('ctrl', [['finger', '👆 ' + T('ctrl_finger')], ['tilt', '📱 ' + T('ctrl_tilt')]], cfg.ctrl || GAMES[game].DEF.ctrl) + '</label>';
     }
     if (game === 'lotto') h += '<label class="f">' + T('opt_card') + segHTML('size', [[3, '3×3 · ' + T('opt_kids')], [4, '4×4'], [5, '5×5']], cfg.size || 3) + '</label><label class="f" style="margin-top:8px">' + T('opt_winBy') + segHTML('win', [['line', '➖ ' + T('lt_line')], ['full', '🟩 ' + T('lt_full')]], cfg.win || 'line') + '</label>' + ((cfg.size || 3) === 3 ? '<label class="f" style="margin-top:8px">' + T('opt_pics') + segHTML('set', [['mix', '🎲 ' + T('set_mix')]].concat(Object.keys(MEM_SETS).map(k => [k, memHTML(k, 0) + ' ' + T('set_' + k)])), cfg.set || 'mix') + '</label>' : '') + '<label class="f" style="margin-top:8px">' + T('opt_pace') + segHTML('pace', [['slow', '🐢'], ['normal', '🙂'], ['fast', '🐇']], cfg.pace || 'normal') + '</label>';
     if (game === 'guess') {
