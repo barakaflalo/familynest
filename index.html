@@ -429,6 +429,7 @@ html.art .mm-b::after{content:none}
 .mode.daily{border-color:var(--acc)}
 .mode.daily.done{opacity:.8}
 .bd>canvas.base{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bwrap.hasbg{background-size:cover;background-position:center;background-repeat:no-repeat}
 
 </style>
 </head>
@@ -2373,7 +2374,7 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
@@ -2567,7 +2568,12 @@ const PAWN_COL = ['red', 'green', 'yellow', 'blue'];
 function artFail(im) { const s = document.createElement('span'); s.className = 'aif'; s.textContent = im.alt; im.replaceWith(s); }
 const imgTag = (src, alt, cls) => ART_ON ? '<img class="' + (cls || 'ai') + '" src="' + src + '" alt="' + alt + '" draggable="false" onerror="artFail(this)">' : alt;
 // an animal (by its emoji) as a picture; joy = the happy face
-const avHTML = (emoji, joy) => { const id = EMO2AV[emoji]; return id ? imgTag('av-' + id + (joy ? '-joy' : '') + '.webp', emoji) : emoji; };
+// mood: true / 'joy' = happy face, 'sad' = sad face (falls back to the plain face, then to the emoji)
+const avHTML = (emoji, joy) => {
+  const id = EMO2AV[emoji]; if (!id) return emoji;
+  if (joy === 'sad') return ART_ON ? '<img class="ai" src="av-' + id + '-sad.webp" alt="' + emoji + '" draggable="false" onerror="this.onerror=function(){artFail(this)};this.src=\'av-' + id + '.webp\'">' : emoji;
+  return imgTag('av-' + id + (joy ? '-joy' : '') + '.webp', emoji);
+};
 const avImg = (n, joy) => avHTML(avOf(n), joy);
 // memory pictures
 const memHTML = (set, v) => { const S = MEM_SETS[set] || MEM_SETS.animals, e = S[v] || '❔'; return S[v] ? imgTag('mem-' + (MEM_SETS[set] ? set : 'animals') + '-' + String(v).padStart(2, '0') + '.webp', e, 'ai mi') : e; };
@@ -2575,6 +2581,38 @@ const memHTML = (set, v) => { const S = MEM_SETS[set] || MEM_SETS.animals, e = S
 function svgArt(file, cx, cy, size, emoji, fs, tr) {
   if (!ART_ON) return '<text x="' + cx + '" y="' + (cy + fs * .32) + '" text-anchor="middle" font-size="' + fs + '"' + (tr ? ' transform="' + tr + '"' : '') + '>' + emoji + '</text>';
   return '<image href="' + file + '" x="' + (cx - size / 2) + '" y="' + (cy - size / 2) + '" width="' + size + '" height="' + size + '"' + (tr ? ' transform="' + tr + '"' : '') + ' preserveAspectRatio="xMidYMid meet"/>';
+}
+// pictures used inside boards (SVG <image> and canvas): only drawn once they loaded fine, so a missing
+// file never leaves a hole: the code drawing stays until then. A load redraws the board.
+const ART_IMG = {};
+let artRedrawT = 0;
+function artImg(f) {
+  if (!ART_ON) return null;
+  let o = ART_IMG[f];
+  if (!o) {
+    o = ART_IMG[f] = { ok: false, im: new Image() };
+    o.im.onload = () => { o.ok = true; clearTimeout(artRedrawT); artRedrawT = setTimeout(() => { try { if (typeof fitBoard === 'function') fitBoard(); } catch (e) {} }, 80); };
+    o.im.onerror = () => { o.bad = true; };
+    o.im.src = f;
+  }
+  return o.ok ? o.im : null;
+}
+const artOK = f => !!artImg(f);
+// what each game loads when it opens
+const ART_GAME = {
+  bs: () => ['blue', 'red'].flatMap(c => [2, 3, 4, 5].map(n => 'ship-' + c + '-' + n + '.webp')).concat(['bs-miss.webp', 'bs-hit.webp']),
+  dom: () => ['dom-face.webp', 'dom-back.webp', 'dom-felt.webp'],
+  match: () => ['match-paper.webp'],
+  buzz: () => ['buzz-panel.webp', 'buzz-start.webp', 'buzz-end.webp', 'buzz-ring.webp'],
+  maze: () => ['maze-wood.webp', 'maze-ball.webp', 'maze-hole.webp', 'maze-trap.webp']
+};
+function artPreload(g) { if (!ART_ON) return; artImg('bg-' + g + '.webp'); (ART_GAME[g] ? ART_GAME[g]() : []).forEach(artImg); }
+// the screen behind the board
+function applyBg(g) {
+  const w = document.getElementById('bwrap'); if (!w) return;
+  const im = g ? artImg('bg-' + g + '.webp') : null;
+  w.classList.toggle('hasbg', !!im);
+  w.style.backgroundImage = im ? 'linear-gradient(rgba(10,14,24,.18),rgba(10,14,24,.18)),url(bg-' + g + '.webp)' : '';
 }
 // one probe at start: if the art isn't there (old upload, offline first run) use emoji everywhere
 function artProbe(done) {
@@ -2584,8 +2622,9 @@ function artProbe(done) {
 }
 const ART_FILES = (() => {
   const f = [];
-  AV_IDS.forEach(a => f.push('av-' + a + '.webp', 'av-' + a + '-joy.webp'));
-  ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'].forEach(t => f.push('tile-' + t + '.webp'));
+  AV_IDS.forEach(a => f.push('av-' + a + '.webp', 'av-' + a + '-joy.webp', 'av-' + a + '-sad.webp'));
+  GAME_IDS.forEach(t => f.push('tile-' + t + '.webp', 'bg-' + t + '.webp'));
+  Object.keys(ART_GAME).forEach(g => ART_GAME[g]().forEach(x => f.push(x)));
   ['animals', 'food', 'ride', 'sea'].forEach(s => { for (let i = 0; i < 12; i++) f.push('mem-' + s + '-' + String(i).padStart(2, '0') + '.webp'); });
   f.push('card-back.webp');
   ['green', 'orange', 'purple', 'red', 'yellow', 'olive'].forEach(c => f.push('sl-head-' + c + '.webp'));
@@ -2634,7 +2673,7 @@ async function hops(t, pts, per, snd) { for (const p of pts) { if (snd) beep(snd
 const pname = (V, s) => { const p = V.players[s]; if (!p) return ''; if (p.kind === 'bot' && p.pe >= 0) return T('pe_' + p.pe); return p.name || T('player') + ' ' + (s + 1); };
 const pemojiTxt = (V, s) => { const p = V.players[s]; if (!p) return '❔'; return p.kind === 'bot' && p.pe >= 0 ? PERSONAS[p.pe % PERSONAS.length] : avOf(p.av); };
 // the player's animal as a picture; happy face when they won (or joy=true)
-const pemoji = (V, s, joy) => avHTML(pemojiTxt(V, s), joy || !!(V && V.over && V.winner === s));
+const pemoji = (V, s, joy) => avHTML(pemojiTxt(V, s), joy || !!(V && V.over && V.winner === s));   // joy: true = happy, 'sad' = sad
 function svg(tag, attrs, inner) { return '<' + tag + ' ' + Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ') + (inner == null ? '/>' : '>' + inner + '</' + tag + '>'); }
 
 /* ================= Snakes & Ladders ================= */
@@ -3089,6 +3128,13 @@ UI.bs = (() => {
     const h = cells.length > 1 ? (cells[1] - cells[0]) === 1 : true, r = shipPath(n, cells, h), pad = .12;
     const x = r.x + pad, y = r.y + pad, w = r.w - 2 * pad, hh = r.hh - 2 * pad, rad = Math.min(w, hh) / 2;
     let g = '<g class="bs-ship' + (opts.cls ? ' ' + opts.cls : '') + '"' + (opts.k != null ? ' data-k="' + opts.k + '"' : '') + '>';
+    const len = cells.length, file = opts.art && len >= 2 && len <= 5 ? 'ship-' + opts.art + '-' + len + '.webp' : null;
+    if (file && artOK(file)) {
+      // drawn ship (bow to the right; turned to point down when the ship stands)
+      g += svg('rect', { x: r.x + .04, y: r.y + .04, width: r.w - .08, height: r.hh - .08, rx: .3, fill: 'none', stroke: 'none' });
+      g += '<image href="' + file + '" x="0" y="0" width="' + len + '" height="1" preserveAspectRatio="none" transform="translate(' + (h ? r.x : r.x + 1) + ' ' + r.y + ')' + (h ? '' : ' rotate(90)') + '"' + (opts.sunk ? ' style="filter:grayscale(1) brightness(.6)" opacity=".85"' : '') + '/>';
+      return g + '</g>';
+    }
     g += svg('rect', { x, y, width: w, height: hh, rx: rad, fill: opts.sunk ? '#5d6470' : col, stroke: opts.sunk ? '#2b3038' : 'rgba(0,0,0,.35)', 'stroke-width': .06 });
     g += svg('rect', { x: x + (h ? .2 : .14), y: y + (h ? .14 : .2), width: h ? w - .4 : w - .28, height: h ? hh - .28 : hh - .4, rx: rad * .6, fill: 'rgba(255,255,255,.22)' });
     cells.forEach(i => { const cx = i % n + .5, cy = ((i / n) | 0) + .5; g += svg('circle', { cx, cy, r: .12, fill: opts.sunk ? '#9aa2ad' : '#fff', opacity: .85 }); });
@@ -3096,6 +3142,8 @@ UI.bs = (() => {
   }
   const mark = (n, i, v, fresh) => {
     const cx = i % n + .5, cy = ((i / n) | 0) + .5, B = E(), anim = fresh ? ' class="bs-pop"' : '';
+    const pic = v === B.MISS ? 'bs-miss.webp' : v === B.HIT || v === B.SUNK ? 'bs-hit.webp' : null;
+    if (pic && artOK(pic)) return '<g' + anim + ' style="transform-origin:' + cx + 'px ' + cy + 'px">' + (v === B.SUNK ? svg('circle', { cx, cy, r: .4, fill: '#e53935', opacity: .45 }) : '') + '<image href="' + pic + '" x="' + (cx - .47) + '" y="' + (cy - .47) + '" width=".94" height=".94"/></g>';
     if (v === B.MISS) return '<g' + anim + ' style="transform-origin:' + cx + 'px ' + cy + 'px">' + svg('circle', { cx, cy, r: .3, fill: 'none', stroke: '#fff', 'stroke-width': .07, opacity: .9 }) + svg('circle', { cx, cy, r: .12, fill: '#fff' }) + '</g>';
     if (v === B.WATER) return svg('circle', { cx, cy, r: .07, fill: '#fff', opacity: .55 });
     if (v === B.HIT || v === B.SUNK) return '<g' + anim + ' style="transform-origin:' + cx + 'px ' + cy + 'px">' + svg('circle', { cx, cy, r: .36, fill: v === B.SUNK ? '#e53935' : '#ff9800', opacity: .95 }) + svg('path', { d: 'M' + (cx - .2) + ',' + (cy - .2) + 'L' + (cx + .2) + ',' + (cy + .2) + 'M' + (cx + .2) + ',' + (cy - .2) + 'L' + (cx - .2) + ',' + (cy + .2), stroke: '#fff', 'stroke-width': .1, 'stroke-linecap': 'round' }) + '</g>';
@@ -3103,12 +3151,13 @@ UI.bs = (() => {
   };
   function sea(n) {
     let g = svg('rect', { x: 0, y: 0, width: n, height: n, rx: .35, fill: 'url(#bsW' + n + ')' });
+    // (bs-sea.webp was not delivered: the sea stays drawn in code)
     for (let k = 1; k < n; k++) g += svg('line', { x1: k, y1: .05, x2: k, y2: n - .05, stroke: 'rgba(255,255,255,.28)', 'stroke-width': .03 }) + svg('line', { x1: .05, y1: k, x2: n - .05, y2: k, stroke: 'rgba(255,255,255,.28)', 'stroke-width': .03 });
     return '<defs><linearGradient id="bsW' + n + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fc3f5"/><stop offset="1" stop-color="#1f78c9"/></linearGradient></defs>' + g;
   }
   // draw one sea: whose = the seat whose ships are in it; S = the shots grid fired at it
   function seaSVG(el, V, whose, S, extra) {
-    const n = V.cfg.size, me = meOf(V), col = PC(UI.bs.color(V, whose));
+    const n = V.cfg.size, me = meOf(V), col = PC(UI.bs.color(V, whose)), art = whose === 0 ? 'blue' : 'red';
     let g = sea(n);
     const list = V.ships[whose] || [];
     if (whose === me && V.phase === 'place' && el._draft && !V.placed[me]) {
@@ -3118,13 +3167,13 @@ UI.bs = (() => {
         const c = E().cellsOf(n, s2[0], s2[1], s2[2], V.fleet[k]); if (!c) return;
         let cls = D.sel === k ? 'sel' : '';
         if (dr && dr.k === k && dr.pos) { const tmp = D.ships.slice(); tmp[k] = s2; cls = E().check(n, V.fleet, tmp, V.cfg.touch) ? 'ok' : 'bad'; }
-        g += shipSVG(n, c, col, { k, cls });
+        g += shipSVG(n, c, col, { k, cls, art });
       });
     } else list.forEach((x, k) => {
       if (!x) return;
       const sunkNow = x.c.every(i => S[i] === E().SUNK);          // (during an animation: only ships already shown sunk)
       if (whose !== me && !sunkNow && !V.over && V.me !== -2) return;
-      g += shipSVG(n, x.c, col, { sunk: sunkNow });
+      g += shipSVG(n, x.c, col, { sunk: sunkNow, art });
     });
     S.forEach((v, i) => { if (v) g += mark(n, i, v, extra && extra.fresh === i); });
     if (extra && extra.ghost != null) { const i = extra.ghost; g += svg('rect', { x: i % n + .06, y: ((i / n) | 0) + .06, width: .88, height: .88, rx: .18, fill: 'none', stroke: '#ffeb3b', 'stroke-width': .12 }); }
@@ -3327,9 +3376,15 @@ UI.dom = (() => {
     const vert = h > w, s = vert ? w : h, rx = s * .14;
     let g = '<g class="dm-t' + (o.cls ? ' ' + o.cls : '') + '"' + (o.t != null ? ' data-t="' + o.t + '"' : '') + '>';
     g += svg('rect', { x: x + s * .03, y: y + s * .07, width: w - s * .06, height: h - s * .06, rx, fill: 'rgba(0,0,0,.28)' });
-    g += svg('rect', { x: x + s * .02, y: y + s * .02, width: w - s * .04, height: h - s * .06, rx, fill: o.back ? 'url(#dmBack)' : '#fffdf6', stroke: o.ring || 'rgba(0,0,0,.35)', 'stroke-width': o.ring ? s * .07 : s * .025 });
+    const pf = o.back ? 'dom-back.webp' : 'dom-face.webp', pic = artOK(pf);
+    if (pic) {
+      // the picture is a standing tile: turn it for a lying one
+      const iw = vert ? w - s * .04 : h - s * .06, ih = vert ? h - s * .06 : w - s * .04;
+      g += '<image href="' + pf + '" x="0" y="0" width="' + iw + '" height="' + ih + '" preserveAspectRatio="none" transform="translate(' + (vert ? x + s * .02 : x + w - s * .02) + ' ' + (y + s * .02) + ')' + (vert ? '' : ' rotate(90)') + '"/>';
+      if (o.ring) g += svg('rect', { x: x + s * .02, y: y + s * .02, width: w - s * .04, height: h - s * .06, rx, fill: 'none', stroke: o.ring, 'stroke-width': s * .07 });
+    } else g += svg('rect', { x: x + s * .02, y: y + s * .02, width: w - s * .04, height: h - s * .06, rx, fill: o.back ? 'url(#dmBack)' : '#fffdf6', stroke: o.ring || 'rgba(0,0,0,.35)', 'stroke-width': o.ring ? s * .07 : s * .025 });
     if (!o.back) {
-      g += vert ? svg('line', { x1: x + s * .18, y1: y + h / 2 - s * .02, x2: x + w - s * .18, y2: y + h / 2 - s * .02, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 }) : svg('line', { x1: x + w / 2, y1: y + s * .16, x2: x + w / 2, y2: y + h - s * .2, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 });
+      if (!pic) g += vert ? svg('line', { x1: x + s * .18, y1: y + h / 2 - s * .02, x2: x + w - s * .18, y2: y + h / 2 - s * .02, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 }) : svg('line', { x1: x + w / 2, y1: y + s * .16, x2: x + w / 2, y2: y + h - s * .2, stroke: 'rgba(0,0,0,.35)', 'stroke-width': s * .03 });
       if (vert) { g += half(x + w / 2, y + h / 4 - s * .01, s, v1, face) + half(x + w / 2, y + h * 3 / 4 - s * .03, s, v2, face); }
       else { g += half(x + w / 4, y + h / 2 - s * .02, s, v1, face) + half(x + w * 3 / 4, y + h / 2 - s * .02, s, v2, face); }
     }
@@ -3353,6 +3408,7 @@ UI.dom = (() => {
     const face = V.cfg.face, L = chain(V), F = fit(L), me = meOf(V);
     let g = '<defs><pattern id="dmBack" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#3a6fd8"/><circle cx="10" cy="10" r="4" fill="#ffd54a"/></pattern></defs>';
     g += svg('rect', { x: 0, y: 0, width: VW, height: VH - HAND, rx: 28, fill: 'url(#dmFelt)' });
+    if (artOK('dom-felt.webp')) g += '<defs><pattern id="dmFeltP" width="300" height="300" patternUnits="userSpaceOnUse"><image href="dom-felt.webp" width="300" height="300"/></pattern><radialGradient id="dmVig" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient></defs>' + svg('rect', { x: 0, y: 0, width: VW, height: VH - HAND, rx: 28, fill: 'url(#dmFeltP)' }) + svg('rect', { x: 0, y: 0, width: VW, height: VH - HAND, rx: 28, fill: 'url(#dmVig)' });
     g += '<defs><radialGradient id="dmFelt" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#3fae6a"/><stop offset="1" stop-color="#1f7a46"/></radialGradient></defs>';
     L.forEach(p => { if (hide && hide.has(p.t)) return; g += tileSVG(F.ox + p.x * F.s, F.oy + p.y * F.s, p.w * F.s, p.h * F.s, p.v1, p.v2, face, { t: p.t, cls: 'ch' }); });
     // boneyard
@@ -3553,7 +3609,8 @@ UI.match = (() => {
   function tileSVG(L, t, uid) {
     const N = L.S[0].N, R = L.S[0].R, v = []; for (let k = 0; k < N; k++) { const a = k * 2 * Math.PI / N; v.push([R * Math.cos(a), R * Math.sin(a)]); }
     const pts = v.map(p => p[0].toFixed(4) + ',' + p[1].toFixed(4)).join(' '), ap = R * Math.cos(Math.PI / N), el = 2 * R * Math.sin(Math.PI / N), sz = Math.min(el * .54, ap * 1.6) / 2;
-    let g = '<clipPath id="mc' + uid + '"><polygon points="' + pts + '"/></clipPath><g clip-path="url(#mc' + uid + ')">' + svg('polygon', { points: pts, fill: '#fff8e8' });
+    let g = '<clipPath id="mc' + uid + '"><polygon points="' + pts + '"/></clipPath><g clip-path="url(#mc' + uid + ')">' + svg('polygon', { points: pts, fill: '#fff8e8' })
+      + (artOK('match-paper.webp') ? '<image href="match-paper.webp" x="' + (-R) + '" y="' + (-R) + '" width="' + 2 * R + '" height="' + 2 * R + '" preserveAspectRatio="none"/>' : '');
     L.tiles[t].forEach((e, k) => {
       const na = (k + .5) * 360 / N, mx = ap * Math.cos(na / D), my = ap * Math.sin(na / D), rho = na + (e.h === 0 ? 270 : 90);
       g += '<g transform="translate(' + mx.toFixed(4) + ' ' + my.toFixed(4) + ') rotate(' + rho.toFixed(2) + ') scale(' + sz.toFixed(4) + ')">' + pic(L.pics[e.p]) + '</g>';
@@ -3697,13 +3754,16 @@ UI.buzz = (() => {
   function paint(el, L, S, now) {
     const x = chCanvas(el, L); if (!x) return; const r = el._run;
     // board: brushed metal
+    const panel = artImg('buzz-panel.webp');
+    if (panel) x.drawImage(panel, 0, 0, L.W, L.H); else {
     const bg = x.createLinearGradient(0, 0, L.W, L.H); bg.addColorStop(0, '#3b4652'); bg.addColorStop(1, '#1d242c'); x.fillStyle = bg; x.fillRect(0, 0, L.W, L.H);
-    x.strokeStyle = 'rgba(255,255,255,.04)'; x.lineWidth = .3; for (let k = 0; k < L.H; k += 4) { x.beginPath(); x.moveTo(0, k); x.lineTo(L.W, k + 2); x.stroke(); }
+    x.strokeStyle = 'rgba(255,255,255,.04)'; x.lineWidth = .3; for (let k = 0; k < L.H; k += 4) { x.beginPath(); x.moveTo(0, k); x.lineTo(L.W, k + 2); x.stroke(); } }
     if (r && S.touch) { x.fillStyle = 'rgba(255,40,40,' + (0.18 + 0.12 * Math.sin(now / 30)) + ')'; x.fillRect(0, 0, L.W, L.H); }
     const P = L.pts, A = P[0], Z = P[P.length - 1];
     // posts
     const post = (p, c) => { x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0] + .8, p[1] + 1.2, 4.2, 0, 7); x.fill(); x.fillStyle = c; x.beginPath(); x.arc(p[0], p[1], 4, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.5)'; x.beginPath(); x.arc(p[0] - 1.2, p[1] - 1.2, 1.3, 0, 7); x.fill(); };
-    post(A, '#2f9e4f'); post(Z, '#e8453c');
+    const pimg = (p, f, c) => { const im = artImg(f); if (!im) return post(p, c); x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0] + .8, p[1] + 1.2, 4.4, 0, 7); x.fill(); x.drawImage(im, p[0] - 5, p[1] - 5, 10, 10); };
+    pimg(A, 'buzz-start.webp', '#2f9e4f'); pimg(Z, 'buzz-end.webp', '#e8453c');
     // wire: shadow, copper, highlight; the part already done glows
     const line = (from, to, w, c) => { x.strokeStyle = c; x.lineWidth = w; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(P[from][0], P[from][1]); for (let i = from + 1; i <= to; i++) x.lineTo(P[i][0], P[i][1]); x.stroke(); };
     x.save(); x.translate(.7, 1.1); line(0, P.length - 1, L.wire, 'rgba(0,0,0,.45)'); x.restore();
@@ -3712,9 +3772,12 @@ UI.buzz = (() => {
     // the ring and its handle
     const rx = S.x, ry = S.y, rc = r && S.touch ? '#ff5252' : '#e3e9ee';
     x.strokeStyle = 'rgba(0,0,0,.4)'; x.lineWidth = L.ring + .6; x.beginPath(); x.arc(rx + .6, ry + 1, L.R, 0, 7); x.stroke();
+    const ring = !(r && S.touch) && artImg('buzz-ring.webp');
+    // the picture: ring centred, outer diameter = half the picture
+    if (ring) { const sz = (L.R + L.ring / 2) * 4; x.drawImage(ring, rx - sz / 2, ry - sz / 2, sz, sz); } else {
     x.strokeStyle = '#5d4037'; x.lineWidth = 2.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(rx + L.R * .72, ry + L.R * .72); x.lineTo(rx + L.R * .72 + 7, ry + L.R * .72 + 7); x.stroke();
     x.strokeStyle = rc; x.lineWidth = L.ring; x.beginPath(); x.arc(rx, ry, L.R, 0, 7); x.stroke();
-    x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = L.ring * .35; x.beginPath(); x.arc(rx, ry, L.R, 3.6, 5.2); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = L.ring * .35; x.beginPath(); x.arc(rx, ry, L.R, 3.6, 5.2); x.stroke(); }
     // sparks
     if (r && r.sparks) { r.sparks = r.sparks.filter(s => (s.life -= 1 / 60) > 0); for (const s of r.sparks) { s.x += s.vx / 60; s.y += s.vy / 60; s.vy += 40 / 60; x.fillStyle = 'rgba(255,' + (200 + 55 * s.life | 0) + ',80,' + s.life * 2 + ')'; x.fillRect(s.x, s.y, .9, .9); } }
     if (!r) { x.fillStyle = 'rgba(255,255,255,.85)'; x.font = '5px Rubik,sans-serif'; x.textAlign = 'center'; x.fillText('▶', A[0], A[1] - 6); x.fillText('🏁', Z[0], Z[1] - 6); }
@@ -3751,6 +3814,7 @@ UI.buzz = (() => {
       const r = el._run, S = el._S; if (!r) return; r.x++; r.lives--; r.lastZap = performance.now();
       buzz(120); for (let k = 0; k < 18; k++) { const a = Math.random() * 7, v = 20 + Math.random() * 40; r.sparks.push({ x: S.x, y: S.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .3 + Math.random() * .3 }); }
       this.hud(el); if (r.lives <= 0) setTimeout(() => this.end(el, false), 250);
+      try { const V = curView(); if (V && V.me >= 0) bubbleSeat(V.me, pemoji(V, V.me, 'sad'), 'big', 900); } catch (e) {}
     },
     loop(el) {
       const r = el._run; if (!r) return; const now = performance.now(), dt = Math.min(.05, (now - r.last) / 1000); r.last = now;
@@ -3782,11 +3846,14 @@ UI.maze = (() => {
   const E = () => GAMES.maze, Lof = V => E().level(V.cfg.level);
   function paint(el, L, S, tilt) {
     const x = chCanvas(el, L); if (!x) return;
+    const woodI = artImg('maze-wood.webp'), holeI = artImg('maze-hole.webp'), trapI = artImg('maze-trap.webp'), ballI = artImg('maze-ball.webp');
+    if (woodI) x.drawImage(woodI, 0, 0, L.W, L.H); else {
     const wood = x.createLinearGradient(0, 0, L.W, L.H); wood.addColorStop(0, '#d9a066'); wood.addColorStop(1, '#b7773d'); x.fillStyle = wood; x.fillRect(0, 0, L.W, L.H);
-    x.strokeStyle = 'rgba(90,50,15,.12)'; x.lineWidth = .5; for (let k = 3; k < L.H; k += 5) { x.beginPath(); x.moveTo(0, k); x.bezierCurveTo(30, k + 2, 70, k - 2, L.W, k + 1); x.stroke(); }
+    x.strokeStyle = 'rgba(90,50,15,.12)'; x.lineWidth = .5; for (let k = 3; k < L.H; k += 5) { x.beginPath(); x.moveTo(0, k); x.bezierCurveTo(30, k + 2, 70, k - 2, L.W, k + 1); x.stroke(); } }
+    const pic = (im, cx, cy, r) => x.drawImage(im, cx - r / .92, cy - r / .92, 2 * r / .92, 2 * r / .92);
     // holes and traps
-    for (const o of L.holes) { const g = x.createRadialGradient(o.x - 1, o.y - 1, .5, o.x, o.y, L.RH); g.addColorStop(0, '#000'); g.addColorStop(1, '#3a2210'); x.fillStyle = g; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); if (o.c >= 0) mazeMark(x, o.c, o.x, o.y - L.RH - 2.4, 1.3, L.BALLC[o.c]); }
-    for (const o of L.traps) { x.fillStyle = '#120806'; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = '#ff1744'; x.lineWidth = .7; x.setLineDash([1.2, 1]); x.beginPath(); x.arc(o.x, o.y, L.RH + .4, 0, 7); x.stroke(); x.setLineDash([]); x.fillStyle = '#ff5252'; x.font = '4px sans-serif'; x.textAlign = 'center'; x.fillText('✕', o.x, o.y + 1.4); }
+    for (const o of L.holes) { if (holeI) { pic(holeI, o.x, o.y, L.RH); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); if (o.c >= 0) mazeMark(x, o.c, o.x, o.y - L.RH - 2.4, 1.3, L.BALLC[o.c]); continue; } const g = x.createRadialGradient(o.x - 1, o.y - 1, .5, o.x, o.y, L.RH); g.addColorStop(0, '#000'); g.addColorStop(1, '#3a2210'); x.fillStyle = g; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); if (o.c >= 0) mazeMark(x, o.c, o.x, o.y - L.RH - 2.4, 1.3, L.BALLC[o.c]); }
+    for (const o of L.traps) { if (trapI) { pic(trapI, o.x, o.y, L.RH + .4); continue; } x.fillStyle = '#120806'; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = '#ff1744'; x.lineWidth = .7; x.setLineDash([1.2, 1]); x.beginPath(); x.arc(o.x, o.y, L.RH + .4, 0, 7); x.stroke(); x.setLineDash([]); x.fillStyle = '#ff5252'; x.font = '4px sans-serif'; x.textAlign = 'center'; x.fillText('✕', o.x, o.y + 1.4); }
     // walls (raised wooden strips)
     x.lineCap = 'round';
     for (const w of L.walls) { x.strokeStyle = 'rgba(40,20,5,.45)'; x.lineWidth = L.WT + .8; x.beginPath(); x.moveTo(w[0] + .5, w[1] + .8); x.lineTo(w[2] + .5, w[3] + .8); x.stroke(); }
@@ -3796,7 +3863,7 @@ UI.maze = (() => {
     for (const b of S.balls) {
       if (b.fall > 0) continue; const R = b.inH >= 0 ? L.RB * .9 : L.RB;
       x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(b.x + sx, b.y + sy, R, 0, 7); x.fill();
-      const g = x.createRadialGradient(b.x - R * .4, b.y - R * .45, R * .1, b.x, b.y, R); g.addColorStop(0, '#ffffff'); g.addColorStop(.35, '#c9d1d9'); g.addColorStop(1, '#4b5563'); x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, R, 0, 7); x.fill();
+      if (ballI) pic(ballI, b.x, b.y, R); else { const g = x.createRadialGradient(b.x - R * .4, b.y - R * .45, R * .1, b.x, b.y, R); g.addColorStop(0, '#ffffff'); g.addColorStop(.35, '#c9d1d9'); g.addColorStop(1, '#4b5563'); x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, R, 0, 7); x.fill(); }
       if (L.colors) { x.strokeStyle = L.BALLC[b.c]; x.lineWidth = .9; x.beginPath(); x.arc(b.x, b.y, R * .62, 0, 7); x.stroke(); mazeMark(x, b.c, b.x, b.y, R * .32, L.BALLC[b.c]); }
     }
     // joystick (finger control)
@@ -4020,6 +4087,7 @@ function ensureMounted(V) {
   if (CUR.mounted === key) return;
   CUR.mounted = key; CUR.evSeen = -1;
   const el = $('#board'); el.dir = 'ltr'; el.className = 'bd bd-' + V.game; el.innerHTML = '';
+  artPreload(V.game); applyBg(V.game);
   sizeBoard(V); UI[V.game]._cx = ctx(V); UI[V.game].mount(el, V);
 }
 function sizeBoard(V) {
@@ -4031,7 +4099,7 @@ function sizeBoard(V) {
 function fitBoard() {
   if (!CUR || SCREEN !== 'game') return; const V = curView(); if (!V) return;
   if (!CUR.mounted) { render(); return; }
-  sizeBoard(V); const U = UI[V.game], el = $('#board');
+  applyBg(V.game); sizeBoard(V); const U = UI[V.game], el = $('#board');
   if (V.game === 'mem') { U.mount(el, V); return; }
   U.size(el); if (!CUR.animating) U.draw(el, V, ctx(V));
   renderBubbles();
@@ -4210,7 +4278,7 @@ function showEnd(V) {
   const me = mySeat(V), w = V.winner, U = UI[V.game];
   const title = GAMES[V.game].sim && V.players.length === 1 ? (V.failed ? '💥 ' + T('ch_failT') : T('ch_done') + ' ' + '⭐'.repeat(GAMES[V.game].stars(GAMES[V.game].level(V.cfg.level), V.res[0]))) : w === -1 ? '🤝 ' + T('draw') : me >= 0 && w === me ? T('youWon') : T('winnerIs', { n: esc(pname(V, w)) });
   const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : GAMES[V.game].sim ? chScore(V, s) : V.game === 'bs' ? T('sunkN', { n: iso((V.sunk[1 - s] || []).length + '/' + V.fleet.length) }) : V.game === 'dom' ? T('tilesN', { n: iso(V.counts[s]) }) + (V.hands[s] && V.hands[s].length ? ' · ' + T('pipsN', { n: iso(GAMES.dom.pips(V.hands[s])) }) : '') : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
-  const rows = places(V).map((x, i) => '<div class="rp' + (x.s === w ? ' win' : '') + '" style="' + pcStyle(U.color(V, x.s)) + '"><span class="pl">' + (w === -1 && (V.tied || []).includes(x.s) ? '🤝' : ['🥇', '🥈', '🥉', '4'][i]) + '</span><span class="em">' + pemoji(V, x.s) + '</span><b>' + esc(pname(V, x.s)) + '</b><span>' + scoreTxt(x.s) + '</span></div>').join('');
+  const rows = places(V).map((x, i) => '<div class="rp' + (x.s === w ? ' win' : '') + '" style="' + pcStyle(U.color(V, x.s)) + '"><span class="pl">' + (w === -1 && (V.tied || []).includes(x.s) ? '🤝' : ['🥇', '🥈', '🥉', '4'][i]) + '</span><span class="em">' + pemoji(V, x.s, (w >= 0 && x.s !== w) || (V.res && V.res[x.s] && !V.res[x.s].ok) ? 'sad' : 0) + '</span><b>' + esc(pname(V, x.s)) + '</b><span>' + scoreTxt(x.s) + '</span></div>').join('');
   const extra = newStickersHTML(CUR.newStk || []) + (CUR.hints ? '<p class="muted">' + T('hintsUsed', { n: CUR.hints }) + '</p>' : '') + (V.game === 'mem' && V.players.length === 1 ? '<p class="muted">' + T('memFlips', { n: iso(V.flips[0]) }) + '</p>' : '');
   const guest = isGuest(), net = CUR.mode === 'net';
   const nextOk = GAMES[V.game].sim && !guest && V.cfg.level < GAMES[V.game].LEVELS && V.res.some(r => r && r.ok);
@@ -4717,7 +4785,7 @@ function bindVoice() {
    FamilyNest — screens: home · setup · settings · stats · replays · rules · about · guide
    ===================================================================== */
 const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄', match: '🧩', buzz: '⚡', maze: '⚪' };
-const ART_TILES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'];      // games that have a drawn home tile
+const ART_TILES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze'];      // games that have a drawn home tile
 // computer levels per game: [level, text key, stars] — only levels that passed the measurements
 function levelsOf(game, cfg, n) {
   const kids = [0, 'lv_kids', '🧸'], easy = [1, 'lv_easy', '⭐'], med = [2, 'lv_med', '⭐⭐'], hard = [3, 'lv_hard', '⭐⭐⭐'], top = [4, 'lv_top', '🏆'];
