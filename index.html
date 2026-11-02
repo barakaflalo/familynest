@@ -6,10 +6,10 @@
 if (location.hostname === 'barakaflalo.github.io') location.replace('https://familynest-app.pages.dev/' + location.search + location.hash);</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FamilyNest · כל המשפחה משחקת!</title>
-<meta name="description" content="FamilyNest — משחקי משפחה: סולמות ונחשים, לודו, ארבע בשורה, איקס-עיגול, זיכרון ונקודות וקופסאות. מול המחשב, בטלפון אחד או אונליין עם דיבור.">
+<meta name="description" content="FamilyNest — 11 משחקי משפחה: סולמות ונחשים, לודו, ארבע בשורה, איקס-עיגול, זיכרון, נקודות וקופסאות, צוללות, דומינו, התאמת קלפים, החוט החשמלי ומבוך הכדורים. מול המחשב, בטלפון אחד או אונליין עם דיבור.">
 <meta name="theme-color" content="#0a0a0a">
 <meta property="og:title" content="FamilyNest · כל המשפחה משחקת!">
-<meta property="og:description" content="שישה משחקי משפחה באפליקציה אחת — מול המחשב, בטלפון אחד או אונליין עם דיבור.">
+<meta property="og:description" content="11 משחקי משפחה באפליקציה אחת — מול המחשב, בטלפון אחד או אונליין עם דיבור.">
 <meta property="og:image" content="icon-512.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -395,6 +395,36 @@ html.art .mm-b::after{content:none}
 .curtain-in .big{font-size:96px;line-height:1.1;margin-top:20px}
 .curtain-in .big img.ai{width:150px;height:150px}
 .curtain-in h2{font-size:28px;color:var(--pc)}
+
+/* ---------------- 1.4 challenge games ---------------- */
+.ch-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6%;z-index:12;background:rgba(0,0,0,.28);border-radius:14px}
+.ch-card{background:var(--panel);border:2px solid var(--pc,var(--acc));border-radius:20px;padding:14px 16px;max-width:340px;width:100%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.ch-card.dim{border-color:var(--line)}
+.ch-who{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:44px;line-height:1}
+.ch-who img.ai{width:72px;height:72px}
+.ch-who b{font-size:20px;color:var(--pc,var(--ink))}
+.ch-st{font-family:var(--disp);font-size:20px;margin:4px 0}
+.ch-beat{font-weight:700;color:var(--acc);margin:2px 0 4px}
+.ch-how{font-size:14px;color:var(--muted);margin:6px 0 10px;line-height:1.35}
+.ch-done{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.ch-r{background:var(--panel2);border-radius:12px;padding:3px 8px;font-size:13px;display:inline-flex;align-items:center;gap:4px}
+.ch-r i{font-style:normal}.ch-r img.ai{width:22px;height:22px}
+.ch-bar{flex:1;display:flex;align-items:center;justify-content:space-around;gap:10px;border-radius:18px;min-height:64px;background:var(--panel2);border:1px solid var(--line);font-size:20px}
+.ch-bar b{font:400 26px var(--disp);color:var(--acc)}
+.bd canvas.ch-cv{border-radius:14px;touch-action:none}
+.mt-svg{touch-action:none}
+.mt-svg .mt{transition:transform .22s cubic-bezier(.2,.9,.3,1.2);cursor:grab;filter:drop-shadow(0 .03px .05px rgba(0,0,0,.6))}
+.mt-svg .mt.drag{transition:none;cursor:grabbing}
+.mt-svg.won .mt{animation:mtWin .7s ease-in-out 2}
+@keyframes mtWin{50%{filter:drop-shadow(0 0 .12px #ffeb3b) brightness(1.15)}}
+.stg{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:4px}
+.stg button{border:1.5px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:12px;padding:5px 0 3px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.stg button b{font:400 17px var(--disp)}.stg button small{font-size:9px;min-height:11px}
+.stg button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 22%,var(--panel2))}
+.stg button:disabled{opacity:.4}
+.gt-match{background:linear-gradient(160deg,#ff6b9a,#c2185b)}
+.gt-buzz{background:linear-gradient(160deg,#5c6b7a,#2b3440)}
+.gt-maze{background:linear-gradient(160deg,#c98a4b,#8a5320)}
 
 </style>
 </head>
@@ -1808,6 +1838,325 @@ GAMES.dom = (() => {
   return { id: 'dom', minP: 2, maxP: 4, hidden: true, DEF, TILES, handSize, options, pips, newGame, apply, legal, view, ai, levels: 3 };
 })();
 
+/* ---- g_ch.js ---- */
+/* =====================================================================
+   FamilyNest 1.4 — challenge games (one player at a time or all at once):
+     match · edge-matching cards (triangles → squares → hexagons)
+     buzz  · the electric wire (keep the ring around the wire)
+     maze  · tilt maze with steel balls and holes
+   The play itself happens on the phone (real time); the engine records one
+   result per player: { ok, t (ms), x (mistakes), p (progress 0..1) }.
+   Everybody plays the SAME stage (levels are fixed and generated from the
+   stage number), so results are comparable — on one phone, against computer
+   characters, or online at the same time.
+   Pure: level generators and the physics run in Node too (tests).
+   ===================================================================== */
+const CH = (() => {
+  // deterministic random for level generation
+  function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+  const fmt = ms => { const s = Math.round(ms / 100) / 10; const m = Math.floor(s / 60), r = s - m * 60; return (m ? m + ':' + (r < 10 ? '0' : '') + r.toFixed(1) : r.toFixed(1)) ; };
+  function make(id, o) {
+    const DEF = Object.assign({ level: 1 }, o.DEF || {});
+    function newGame(players, cfg, seed) {
+      cfg = Object.assign({}, DEF, cfg); cfg.level = Math.max(1, Math.min(o.LEVELS, (cfg.level | 0) || 1));
+      const G = FC.base(id, players, cfg, seed);
+      G.res = players.map(() => null); G.phase = 'play';
+      return G;
+    }
+    // lower is better: finished first, then time + a penalty per mistake; not finished: by progress
+    const score = r => !r ? Infinity : r.ok ? r.t + (o.penalty || 0) * (r.x || 0) : 1e9 + (1 - (r.p || 0)) * 1e8 + r.t;
+    function apply(G, s, a) {
+      if (G.over || !a || !a.res || s < 0 || s >= G.players.length || G.res[s]) return { ok: false };
+      const r = a.res, res = { ok: !!r.ok, t: Math.round(Math.max(0, Math.min(3600000, +r.t || 0))), x: Math.max(0, Math.min(999, r.x | 0)), p: r.ok ? 1 : Math.max(0, Math.min(1, +r.p || 0)) };
+      G.res[s] = res; FC.ev(G, { e: 'res', s, r: res });
+      const n = G.players.length;
+      if (G.res.every(x => x)) {
+        G.over = true;
+        const sc = G.res.map(score), best = Math.min(...sc), top = sc.map((v, k) => v === best ? k : -1).filter(k => k >= 0);
+        G.winner = n === 1 ? (res.ok ? 0 : -1) : top.length === 1 ? top[0] : -1; G.tied = top; G.failed = n === 1 && !res.ok;
+        FC.ev(G, { e: 'win', s: G.winner, tied: top });
+      } else for (let k = 1; k <= n; k++) { const q = (s + k) % n; if (!G.res[q]) { G.turn = q; break; } }
+      return { ok: true };
+    }
+    function legal(G) { return G.over ? [] : [{ res: { ok: false, t: 0, x: 0, p: 0 } }]; }
+    // a computer character does not really play: it "finishes" in a time that fits the stage and its level
+    function ai(G, lvl) {
+      if (G.over) return null;
+      const L = o.level(G.cfg.level), base = o.botTime(L), f = [1.75, 1.2, 0.85][lvl] || 1.2;
+      const t = base * f * (0.82 + Math.random() * 0.36);
+      const fail = Math.min(0.8, o.failP(L) * ([2.2, 1, 0.35][lvl] || 1));
+      const ok = Math.random() >= fail, x = o.penalty ? Math.max(0, Math.round((([2.5, 1.2, 0.4][lvl] || 1) * (o.errs ? o.errs(L) : 1)) * Math.random() * 1.6)) : 0;
+      return { res: { ok, t: ok ? t : t * (0.3 + Math.random() * 0.5), x, p: ok ? 1 : 0.25 + Math.random() * 0.65 } };
+    }
+    // stars for a finished run (compared with the stage's reference time)
+    function stars(L, r) { if (!r || !r.ok) return 0; const s = (r.t + (o.penalty || 0) * (r.x || 0)) / o.botTime(L); return s <= 0.9 ? 3 : s <= 1.4 ? 2 : 1; }
+    return { id, minP: 1, maxP: 4, sim: true, DEF, LEVELS: o.LEVELS, level: o.level, newGame, apply, legal, view: G => FC.pub(G), ai, score, stars, botTime: o.botTime, penalty: o.penalty || 0, levels: 3 };
+  }
+  return { rng, fmt, make };
+})();
+
+/* ================= match · edge-matching cards ================= */
+GAMES.match = (() => {
+  const TAU = Math.PI * 2;
+  // pictures: coloured shapes (sym = top half looks like the bottom half) and animals
+  const COLORS = ['#e8453c', '#2f9e4f', '#f4b81c', '#2f74d8', '#9b5de5', '#ff8c2a'];
+  const SHAPES = [['heart', 0], ['star', 0], ['tri', 0], ['drop', 0], ['circle', 1], ['moon', 1], ['diamond', 1], ['flower', 1]];
+  const ANIMALS = ['lion', 'panda', 'frog', 'fox', 'monkey', 'koala', 'tiger', 'rabbit', 'dog', 'cat', 'unicorn', 'octopus', 'penguin', 'turtle', 'owl', 'bear'];
+  // slots: regular polygons (N sides) with a centre, circumradius R and a base angle; edge k = vertex k → k+1
+  function poly(c, R, N, th) { const v = []; for (let k = 0; k < N; k++) { const a = th + k * TAU / N; v.push([c[0] + R * Math.cos(a), c[1] + R * Math.sin(a)]); } return v; }
+  function layout(kind, size) {
+    const S = [];
+    if (kind === 'sq') { const R = Math.SQRT1_2; for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) S.push({ c: [x + .5, y + .5], R, N: 4, th: Math.PI / 4 }); }
+    if (kind === 'tri') { const a = 1, h = a * Math.sqrt(3) / 2, R = a / Math.sqrt(3); for (let r = 0; r < size; r++) for (let i = 0; i <= 2 * r; i++) { const up = i % 2 === 0, x = (i - r) * a / 2; S.push(up ? { c: [x, r * h + 2 * h / 3], R, N: 3, th: -Math.PI / 2 } : { c: [x, r * h + h / 3], R, N: 3, th: Math.PI / 2 }); } }
+    if (kind === 'hex') {
+      const R = 1, cells = size === 7 ? [[0, 0], [1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]] : [];
+      if (size === 9 || size === 12) { const cols = size === 9 ? 3 : 4; for (let r = 0; r < 3; r++) for (let q = 0; q < cols; q++) cells.push([q - (r >> 1), r]); }
+      // flat-topped hexagons in axial coordinates
+      cells.forEach(([q, r]) => S.push({ c: [1.5 * R * q, Math.sqrt(3) * R * (r + q / 2)], R, N: 6, th: 0 }));
+    }
+    S.forEach(s => { s.v = poly(s.c, s.R, s.N, s.th); });
+    // shared edges: midpoints that coincide
+    const adj = [], mid = (s, k) => { const a = s.v[k], b = s.v[(k + 1) % s.N]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+    for (let i = 0; i < S.length; i++) for (let ei = 0; ei < S[i].N; ei++) for (let j = i + 1; j < S.length; j++) for (let ej = 0; ej < S[j].N; ej++) {
+      const m1 = mid(S[i], ei), m2 = mid(S[j], ej); if (Math.hypot(m1[0] - m2[0], m1[1] - m2[1]) < 1e-6) adj.push([i, ei, j, ej]);
+    }
+    return { S, adj };
+  }
+  const PLAN = [ // [first stage, kind, size, pictures, picture kinds]
+    [1, 'sq', 2, 3, 'shapes'], [4, 'tri', 2, 3, 'animals'], [7, 'sq', 3, 4, 'mix'], [11, 'tri', 3, 5, 'shapes'],
+    [15, 'hex', 7, 5, 'animals'], [21, 'hex', 9, 6, 'mix'], [26, 'hex', 12, 7, 'mix']];
+  const LEVELS = 30;
+  function picsFor(kind, k, R) {
+    const out = [];
+    const shapes = () => { const c = COLORS.slice().sort(() => R() - .5), s = SHAPES.slice().sort(() => R() - .5); return s.map((sh, i) => ({ t: 'shape', s: sh[0], sym: !!sh[1], c: c[i % c.length] })); };
+    const animals = () => ANIMALS.slice().sort(() => R() - .5).map(a => ({ t: 'animal', a, sym: false }));
+    let pool = kind === 'shapes' ? shapes() : kind === 'animals' ? animals() : shapes().slice(0, 4).concat(animals().slice(0, 4)).sort(() => R() - .5);
+    for (let i = 0; i < k; i++) out.push(pool[i % pool.length]);
+    return out;
+  }
+  const cache = {};
+  function level(n) {
+    n = Math.max(1, Math.min(LEVELS, n | 0)); if (cache[n]) return cache[n];
+    let pl = PLAN[0]; for (const p of PLAN) if (n >= p[0]) pl = p;
+    const R = CH.rng(n * 101 + 7), L = layout(pl[1], pl[2]), pics = picsFor(pl[4], pl[3] + Math.floor((n - pl[0]) / 2), R);
+    // every edge gets { p: picture index, h: half }; shared edges get the two halves of one picture
+    const tiles = L.S.map(s => Array.from({ length: s.N }, () => ({ p: Math.floor(R() * pics.length), h: R() < .5 ? 0 : 1 })));
+    for (const [i, ei, j, ej] of L.adj) { const p = Math.floor(R() * pics.length), h = R() < .5 ? 0 : 1; tiles[i][ei] = { p, h }; tiles[j][ej] = { p, h: 1 - h }; }
+    // start: tiles mixed up and turned (never already solved)
+    let perm, rot;
+    for (let k = 0; k < 50; k++) {
+      perm = L.S.map((s, i) => i); for (let i = perm.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+      rot = perm.map(() => Math.floor(R() * L.S[0].N));
+      if (!solved({ S: L.S, adj: L.adj, tiles, pics }, perm, rot) && perm.filter((t, i) => t === i && rot[i] === 0).length <= Math.max(0, perm.length / 4 - 1)) break;
+    }
+    return (cache[n] = { n, kind: pl[1], size: pl[2], S: L.S, adj: L.adj, tiles, pics, start: { perm, rot } });
+  }
+  // the edge that tile t shows at slot edge e when turned r steps
+  const edgeAt = (Lv, t, r, e) => { const N = Lv.tiles[t].length; return Lv.tiles[t][((e - r) % N + N) % N]; };
+  function edgeOk(Lv, perm, rot, [i, ei, j, ej]) {
+    const a = edgeAt(Lv, perm[i], rot[i], ei), b = edgeAt(Lv, perm[j], rot[j], ej);
+    return a.p === b.p && (Lv.pics[a.p].sym || a.h !== b.h);
+  }
+  function solved(Lv, perm, rot) { return Lv.adj.every(e => edgeOk(Lv, perm, rot, e)); }
+  function matchedEdges(Lv, perm, rot) { return Lv.adj.map(e => edgeOk(Lv, perm, rot, e)); }
+  const E = CH.make('match', {
+    LEVELS, level, penalty: 0,
+    botTime: Lv => 8000 + Lv.S.length * Lv.S[0].N * 1400,
+    failP: Lv => 0.05 + Lv.S.length * 0.005
+  });
+  return Object.assign(E, { layout, solved, matchedEdges, edgeAt, COLORS, SHAPES });
+})();
+
+/* ================= buzz · the electric wire ================= */
+GAMES.buzz = (() => {
+  const W = 100, H = 140, LEVELS = 24;
+  // a polyline with round corners (quadratic curves): smooth, and never bulges past its corners
+  function round(P, f) {
+    const out = [P[0].slice()];
+    for (let i = 1; i < P.length - 1; i++) {
+      const a = P[i - 1], b = P[i], c = P[i + 1], l1 = Math.hypot(b[0] - a[0], b[1] - a[1]), l2 = Math.hypot(c[0] - b[0], c[1] - b[1]), r = Math.min(f, l1 * .45, l2 * .45);
+      const p = [b[0] + (a[0] - b[0]) * r / l1, b[1] + (a[1] - b[1]) * r / l1], q = [b[0] + (c[0] - b[0]) * r / l2, b[1] + (c[1] - b[1]) * r / l2];
+      out.push(p); for (let k = 1; k <= 10; k++) { const t = k / 10, u = 1 - t; out.push([u * u * p[0] + 2 * u * t * b[0] + t * t * q[0], u * u * p[1] + 2 * u * t * b[1] + t * t * q[1]]); }
+    }
+    out.push(P[P.length - 1].slice()); return out;
+  }
+  function spline(P, step) {
+    const out = [];
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+      const len = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), k = Math.max(4, Math.ceil(len / step));
+      for (let j = 0; j < k; j++) {
+        const t = j / k, t2 = t * t, t3 = t2 * t;
+        out.push([0, 1].map(d => .5 * ((2 * p1[d]) + (-p0[d] + p2[d]) * t + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * t2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * t3)));
+      }
+    }
+    out.push(P[P.length - 1].slice()); return out;
+  }
+  function resample(pts, step) {          // even spacing (so "progress" is fair)
+    const out = [pts[0].slice()];
+    for (let i = 1; i < pts.length; i++) {
+      let a = out[out.length - 1]; const b = pts[i]; let d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      while (d >= step) { const p = [a[0] + (b[0] - a[0]) * step / d, a[1] + (b[1] - a[1]) * step / d]; out.push(p); a = p; d = Math.hypot(b[0] - a[0], b[1] - a[1]); }
+    }
+    const last = pts[pts.length - 1]; if (Math.hypot(last[0] - out[out.length - 1][0], last[1] - out[out.length - 1][1]) > step * .3) out.push(last.slice());
+    return out;
+  }
+  const cache = {};
+  function level(n) {
+    n = Math.max(1, Math.min(LEVELS, n | 0)); if (cache[n]) return cache[n];
+    const R = 7.6 - (n - 1) * 0.17, zig = n >= 9 && n % 3 === 0, cps = 3 + Math.min(7, Math.floor(n / 2.5));
+    for (let tries = 0; tries < 400; tries++) {
+      const r = CH.rng(n * 977 + tries * 31 + 3), M = R + 4;
+      // a snake of horizontal passes, far enough apart for the ring; wiggles inside each pass
+      const room = H - 2 * M, maxP = Math.max(1, Math.floor(room / (3.1 * R))), passes = Math.max(1, Math.min(maxP, 1 + Math.floor(n / 3)));
+      const sp = passes > 1 ? room / (passes - 1) : 0, P = [];
+      for (let k = 0; k < passes; k++) {
+        const y = passes > 1 ? H - M - k * sp : H / 2, ltr = k % 2 === 0, xa = ltr ? M : W - M, xb = ltr ? W - M : M;
+        const wig = Math.min(sp * .32, 10) * (n > 2 ? 1 : 0), segs = 1 + Math.min(3, Math.floor(n / 4));
+        P.push([xa, y]);
+        for (let j = 1; j < segs; j++) P.push([xa + (xb - xa) * j / segs, y + (r() - .5) * 2 * wig]);
+        P.push([xb, y]);
+      }
+      if (passes === 1) { P.length = 0; P.push([M, H - M], [W * .72 + (r() - .5) * 8, H * .66], [W * .28 + (r() - .5) * 8, H * .36], [W - M, M]); }
+      const pts = resample(zig ? P : round(P, Math.min(R * 2.2, 14)), 1);
+      // the tube around the wire must not overlap itself, and must stay on the board
+      let ok = pts.every(p => p[0] > R + 1 && p[0] < W - R - 1 && p[1] > R + 1 && p[1] < H - R - 1);
+      const gap = Math.ceil(4.2 * R);
+      for (let i = 0; ok && i < pts.length; i += 2) for (let j = i + gap; j < pts.length; j += 2) if (Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]) < 2.3 * R) { ok = false; break; }
+      if (!ok) continue;
+      let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      return (cache[n] = { n, W, H, R, wire: 1.3, ring: 1.0, pts, len, zig, lives: n <= 6 ? 5 : 3 });
+    }
+    throw new Error('buzz level ' + n);
+  }
+  // the ring follows the player; it may only move along the wire (no jumping across loops)
+  function start(Lv) { return { x: Lv.pts[0][0], y: Lv.pts[0][1], i: 0, touch: false, hits: 0, done: false, best: 0 }; }
+  function near(Lv, S, x, y) {
+    let bi = S.i, bd = 1e9; const P = Lv.pts, lo = Math.max(0, S.i - 12), hi = Math.min(P.length - 2, S.i + 12);
+    for (let i = lo; i <= hi; i++) {
+      const a = P[i], b = P[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / L2)), d = Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t);
+      if (d < bd) { bd = d; bi = i; }
+    }
+    return { i: bi, d: bd };
+  }
+  // move the ring to (x, y): returns 'touch' when the ring starts touching the wire
+  function step(Lv, S, x, y) {
+    S.x = Math.max(0, Math.min(Lv.W, x)); S.y = Math.max(0, Math.min(Lv.H, y));
+    const q = near(Lv, S, S.x, S.y); S.i = q.i; S.best = Math.max(S.best, q.i); S.d = q.d;
+    const lim = Lv.R - (Lv.wire + Lv.ring) / 2, was = S.touch; S.touch = q.d > lim;
+    if (!S.done && S.i >= Lv.pts.length - 3 && !S.touch) S.done = true;
+    return S.touch && !was ? 'touch' : null;
+  }
+  const E = CH.make('buzz', {
+    LEVELS, level, penalty: 2500, DEF: { ctrl: 'finger' },
+    botTime: Lv => Lv.len * (55 + 260 / Lv.R),
+    failP: Lv => 0.04 + Lv.n * 0.012, errs: Lv => 1 + Lv.n / 8
+  });
+  return Object.assign(E, { start, step, near });
+})();
+
+/* ================= maze · tilt maze with steel balls ================= */
+GAMES.maze = (() => {
+  const W = 100, H = 140, LEVELS = 24, RB = 3.1, RH = 4.3, WT = 1.8;
+  const PLAN = [ // [first stage, cols, rows, balls, colours, traps]
+    [1, 0, 0, 1, 0, 0], [3, 0, 0, 2, 0, 0], [4, 3, 4, 1, 0, 0], [6, 3, 4, 2, 0, 0], [8, 4, 5, 2, 1, 0], [11, 4, 6, 3, 1, 0],
+    [14, 5, 6, 2, 1, 1], [17, 5, 7, 3, 1, 2], [20, 5, 7, 4, 1, 3], [23, 6, 8, 4, 1, 4]];
+  const BALLC = ['#e8453c', '#2f74d8', '#2f9e4f', '#f4b81c'];
+  const cache = {};
+  function level(n) {
+    n = Math.max(1, Math.min(LEVELS, n | 0)); if (cache[n]) return cache[n];
+    let pl = PLAN[0]; for (const p of PLAN) if (n >= p[0]) pl = p;
+    const [, cols, rows, balls, colors, traps] = pl, r = CH.rng(n * 613 + 11);
+    const walls = [[0, 0, W, 0], [W, 0, W, H], [W, H, 0, H], [0, H, 0, 0]], holes = [], trapL = [], startP = [];
+    if (!cols) {
+      // open tray: holes spread out, balls start at the bottom
+      const spots = n === 1 ? [[50, 30]] : [[28, 34], [72, 48]];
+      spots.slice(0, balls).forEach((p, k) => holes.push({ x: p[0], y: p[1], c: colors ? k : -1 }));
+      for (let k = 0; k < balls; k++) startP.push([40 + k * 20, H - 14]);
+      if (n >= 2) walls.push([18, 82, 62, 82], [40, 104, 84, 104]);
+    } else {
+      const cw = W / cols, ch = H / rows, V = Array.from({ length: cols * rows }, () => false), wallsH = [], wallsV = [];
+      // walls between cells: right[i] and down[i]; carve with a depth-first walk
+      const right = Array(cols * rows).fill(true), down = Array(cols * rows).fill(true), dist = Array(cols * rows).fill(0);
+      const stack = [cols * (rows - 1)]; V[stack[0]] = true;
+      while (stack.length) {
+        const c = stack[stack.length - 1], x = c % cols, y = (c / cols) | 0, nb = [];
+        if (x > 0 && !V[c - 1]) nb.push(c - 1); if (x < cols - 1 && !V[c + 1]) nb.push(c + 1); if (y > 0 && !V[c - cols]) nb.push(c - cols); if (y < rows - 1 && !V[c + cols]) nb.push(c + cols);
+        if (!nb.length) { stack.pop(); continue; }
+        const d = nb[Math.floor(r() * nb.length)];
+        if (d === c + 1) right[c] = false; else if (d === c - 1) right[d] = false; else if (d === c + cols) down[c] = false; else down[d] = false;
+        V[d] = true; dist[d] = dist[c] + 1; stack.push(d);
+      }
+      // a few extra openings so it is not a single corridor (several balls need room)
+      for (let k = 0; k < Math.floor(cols * rows / 6); k++) { const c = Math.floor(r() * cols * rows); if (r() < .5 && c % cols < cols - 1) right[c] = false; else if (c < cols * (rows - 1)) down[c] = false; }
+      for (let c = 0; c < cols * rows; c++) { const x = c % cols, y = (c / cols) | 0; if (x < cols - 1 && right[c]) walls.push([(x + 1) * cw, y * ch, (x + 1) * cw, (y + 1) * ch]); if (y < rows - 1 && down[c]) walls.push([x * cw, (y + 1) * ch, (x + 1) * cw, (y + 1) * ch]); }
+      // holes in the farthest cells, traps in other dead ends, balls start bottom-left
+      const order = dist.map((d, c) => [d, c]).sort((a, b) => b[0] - a[0]).map(a => a[1]).filter(c => c !== cols * (rows - 1));
+      const used = new Set();
+      for (let k = 0; k < balls; k++) { let c = order.find(c => !used.has(c) && ![...used].some(u => Math.abs(u % cols - c % cols) + Math.abs(((u / cols) | 0) - ((c / cols) | 0)) < 2)); if (c == null) c = order.find(c => !used.has(c)); used.add(c); holes.push({ x: (c % cols + .5) * cw, y: (((c / cols) | 0) + .5) * ch, c: colors ? k : -1 }); }
+      const dead = order.filter(c => !used.has(c) && dist[c] > 1);
+      for (let k = 0; k < traps && k < dead.length; k++) { const c = dead[Math.floor(dead.length * (k + .5) / traps)]; used.add(c); trapL.push({ x: (c % cols + .5) * cw, y: (((c / cols) | 0) + .5) * ch }); }
+      for (let k = 0; k < balls; k++) startP.push([cw * .5 + (k % 2 ? 1 : -1) * Math.min(cw * .25, RB * 1.2) * (k ? 1 : 0), H - ch * .5 - (k >> 1) * RB * 2.3]);
+    }
+    let cells = cols * rows || 4;
+    return (cache[n] = { n, W, H, RB, RH, WT, walls, holes, traps: trapL, start: startP, balls: startP.length, colors: !!colors, BALLC, cells });
+  }
+  /* ---------- physics (units: board units, seconds) ---------- */
+  function create(Lv) { return { t: 0, balls: Lv.start.map((p, k) => ({ x: p[0], y: p[1], vx: 0, vy: 0, c: k, inH: -1, fall: 0 })), falls: 0, stable: 0, done: false, hits: 0 }; }
+  const G_MAX = 170, FRICT = 1.1, REST = 0.35;
+  // gx, gy in −1..1 (full tilt); returns events ['hit','sink','fall','win']
+  function step(Lv, S, gx, gy, dt) {
+    const ev = []; const sub = 6, h = Math.min(dt, 0.05) / sub, VMAX = 230;
+    const walls = b => {
+      for (const w of Lv.walls) {
+        const [x1, y1, x2, y2] = w, dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy;
+        const t = Math.max(0, Math.min(1, ((b.x - x1) * dx + (b.y - y1) * dy) / L2)), px = x1 + dx * t, py = y1 + dy * t;
+        let nx = b.x - px, ny = b.y - py, d = Math.hypot(nx, ny); const lim = Lv.RB + Lv.WT / 2;
+        if (d < lim) {
+          if (d < 1e-6) { nx = -dy; ny = dx; d = Math.hypot(nx, ny); }
+          nx /= d; ny /= d; b.x = px + nx * lim; b.y = py + ny * lim;
+          const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= (1 + REST) * vn * nx; b.vy -= (1 + REST) * vn * ny; if (vn < -25) { S.hits++; ev.push('hit'); } }
+        }
+      }
+    };
+    for (let it = 0; it < sub; it++) {
+      for (const b of S.balls) {
+        if (b.fall > 0) { b.fall -= h; if (b.fall <= 0) { const p = Lv.start[b.c]; b.x = p[0]; b.y = p[1]; b.vx = b.vy = 0; } continue; }
+        let ax = gx * G_MAX, ay = gy * G_MAX;
+        // holes pull a ball in (a shallow dip): strong tilt can still pull it out
+        b.inH = -1;
+        Lv.holes.forEach((o, k) => { const dx = o.x - b.x, dy = o.y - b.y, d = Math.hypot(dx, dy); if (d < Lv.RH) { const f = 0.85 * G_MAX * Math.min(1, d / (Lv.RH * .5)) / Math.max(d, 1e-3); ax += dx * f; ay += dy * f; if (d < Lv.RH * .55) b.inH = k; } });
+        const fr = b.inH >= 0 ? 6 : FRICT;
+        b.vx += ax * h; b.vy += ay * h; b.vx *= Math.exp(-fr * h); b.vy *= Math.exp(-fr * h);
+        const sp = Math.hypot(b.vx, b.vy); if (sp > VMAX) { b.vx *= VMAX / sp; b.vy *= VMAX / sp; }
+        b.x += b.vx * h; b.y += b.vy * h;
+        // traps: the ball falls through and comes back to the start
+        for (const o of Lv.traps) if (Math.hypot(o.x - b.x, o.y - b.y) < Lv.RH * .6) { b.fall = 0.6; b.vx = b.vy = 0; S.falls++; ev.push('fall'); break; }
+      }
+      // balls bump each other, then walls have the last word (a ball is never pushed into a wall)
+      for (let i = 0; i < S.balls.length; i++) for (let j = i + 1; j < S.balls.length; j++) {
+        const a = S.balls[i], b = S.balls[j]; if (a.fall > 0 || b.fall > 0) continue;
+        let nx = b.x - a.x, ny = b.y - a.y, d = Math.hypot(nx, ny); const lim = 2 * Lv.RB;
+        if (d < lim && d > 1e-6) { nx /= d; ny /= d; const o = (lim - d) / 2; a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o; const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rv < 0) { const j2 = -(1 + .6) * rv / 2; a.vx -= j2 * nx; a.vy -= j2 * ny; b.vx += j2 * nx; b.vy += j2 * ny; if (rv < -25) ev.push('clack'); } }
+      }
+      for (const b of S.balls) if (b.fall <= 0) { walls(b); walls(b); }
+    }
+    S.t += dt;
+    // finished: every hole holds its ball (or any ball when colours are off), calmly for a moment
+    const full = Lv.holes.every((o, k) => S.balls.some(b => b.fall <= 0 && b.inH === k && (o.c < 0 || o.c === b.c) && Math.hypot(b.vx, b.vy) < 30));
+    S.stable = full ? S.stable + dt : 0;
+    if (!S.done && S.stable > 0.6) { S.done = true; ev.push('win'); }
+    return ev;
+  }
+  const E = CH.make('maze', {
+    LEVELS, level, penalty: 0, DEF: { ctrl: 'tilt' },
+    botTime: Lv => 9000 + Lv.balls * 9000 + Lv.cells * 900 + Lv.traps.length * 4000,
+    failP: Lv => 0.04 + Lv.traps.length * 0.05 + Lv.balls * 0.02
+  });
+  return Object.assign(E, { create, step, BALLC });
+})();
+
 /* ---- texts.js ---- */
 /* =====================================================================
    FamilyNest — texts. Hebrew + English complete; Russian, Spanish, Arabic:
@@ -1819,7 +2168,7 @@ he: {
   st_first: 'ניצחון ראשון', std_first: 'לנצח במשחק כלשהו', st_win_sl: 'אלוף הסולמות', std_win_sl: 'לנצח בסולמות ונחשים', st_win_ludo: 'אלוף הלודו', std_win_ludo: 'לנצח בלודו', st_win_c4: 'ארבע!', std_win_c4: 'לנצח בארבע בשורה', st_win_ttt: 'שלוש בשורה', std_win_ttt: 'לנצח באיקס-עיגול', st_win_mem: 'זוגות זוגות', std_win_mem: 'לנצח בזיכרון', st_win_dots: 'בונה קופסאות', std_win_dots: 'לנצח בנקודות וקופסאות',
   st_ladders3: 'מטפס על', std_ladders3: 'לעלות ב-3 סולמות במשחק אחד', st_survivor: 'שורד נחשים', std_survivor: 'ליפול ב-3 נחשים — ובכל זאת לנצח', st_space: 'אסטרונאוט', std_space: 'לנצח בלוח החלל', st_capper: 'אוכל הכלים', std_capper: 'לאכול 3 כלים במשחק לודו אחד', st_three6: 'שלוש שישיות', std_three6: 'להטיל 6 שלוש פעמים ברצף (ולהפסיד את התור 😅)',
   st_beatOwl: 'חכם מהינשוף', std_beatOwl: 'לנצח את פרופסור ינשוף', st_beatTop: 'בלתי מנוצח בעצמי', std_beatTop: 'לנצח את "כמעט בלתי מנוצח"', st_perfectDraw: 'תיקו מושלם', std_perfectDraw: 'להגיע לתיקו מול "בלתי מנוצח" באיקס-עיגול', st_elephant: 'זיכרון של פיל', std_elephant: 'לנצח את "זיכרון של פיל"', st_memAce: 'מוח על', std_memAce: 'למצוא 4 זוגות ברצף בתור אחד', st_boxes5: 'שרשרת קופסאות', std_boxes5: 'לסגור 5 קופסאות בתור אחד',
-  st_family: 'ערב משפחתי', std_family: 'לשחק 3 אנשים או יותר בטלפון אחד', st_online: 'משחקים מרחוק', std_online: 'לשחק משחק אונליין', st_allGames: 'קשת משחקים', std_allGames: 'לשחק בכל 8 המשחקים', st_games10: '10 משחקים', std_games10: 'לשחק 10 משחקים', st_games50: '50 משחקים', std_games50: 'לשחק 50 משחקים',
+  st_family: 'ערב משפחתי', std_family: 'לשחק 3 אנשים או יותר בטלפון אחד', st_online: 'משחקים מרחוק', std_online: 'לשחק משחק אונליין', st_allGames: 'קשת משחקים', std_allGames: 'לשחק בכל 11 המשחקים', st_games10: '10 משחקים', std_games10: 'לשחק 10 משחקים', st_games50: '50 משחקים', std_games50: 'לשחק 50 משחקים',
   tk_snakeMe: 'אוי לא, נחש! 🐍|למה דווקא אני?! 😩|סססס… זה כואב|טוב, מתחילים מחדש 😅', tk_snakeYou: 'חחח, נחש! 😆|ביי ביי למעלה 👋|הנחש היה רעב 🐍', tk_ladderMe: 'יש! סולם! 🪜|תראו אותי עולה! 🚀|איזה מזל יש לי 😎', tk_ladderYou: 'איזה מזל יש לך! 😮|לא הוגן… 😤|יפה, יפה 👏',
   tk_capMe: 'סליחה… לא באמת 😈|הביתה, מהר! 🏠|תודה על הכלי 😋', tk_capped: 'נו באמת! 😭|זה עוד יחזור אליך 😤|אוף… הכל מההתחלה', tk_home: 'עוד אחד בבית! 🏠|כמעט סיימתי 😎', tk_three6: 'שלוש שישיות?! 😱|יותר מדי מזל 😅', tk_six: 'שש! 🎲|קדימה! 💨',
   tk_match: 'זכרתי! 🧠|זוג! ✨|איזה זיכרון יש לי 😎', tk_box: 'קופסה שלי! 📦|עוד אחת 😋', tk_think: 'הממ… 🤔|רגע, אני חושב…|איפה לשים…', tk_win: 'ניצחתי! 🏆|עוד משחק? 😎|היה כיף! 🎉', tk_lose: 'כל הכבוד! 👏|ניצחת אותי הפעם 😮|בפעם הבאה אני מנצח 😤', tk_draw: 'תיקו! 🤝|אף אחד לא ניצח 😅',
@@ -1828,6 +2177,16 @@ he: {
   saveFail: 'השמירה נכשלה — הזיכרון בטלפון מלא', cancel: 'ביטול', ok: 'אישור', close: 'סגור', home: 'לבית', next: 'הבא', skip: 'דלג', letsPlay: 'יאללה, משחקים!',
   g_sl: 'סולמות ונחשים', g_ludo: 'לודו', g_c4: 'ארבע בשורה', g_ttt: 'איקס-עיגול', g_mem: 'זיכרון', g_dots: 'נקודות וקופסאות',
   g_bs: 'צוללות', g_dom: 'דומינו', opt_kids: 'לילדים', opt_face: 'מה מצויר על האבנים', face_dots: 'נקודות', face_pics: 'תמונות',
+  g_match: 'התאמת קלפים', g_buzz: 'החוט החשמלי', g_maze: 'מבוך הכדורים', opt_stage: 'שלב', opt_ctrl: 'שליטה', ctrl_finger: 'אצבע', ctrl_tilt: 'הטיית הטלפון', stageN: 'שלב {n}',
+  lvd_match_0: 'לוקח את הזמן — מתאים לקטנים', lvd_match_1: 'מסדר בקצב טוב', lvd_match_2: 'זריז מאוד', lvd_buzz_0: 'יד רועדת — נוגע הרבה', lvd_buzz_1: 'יד יציבה', lvd_buzz_2: 'יד של מנתח', lvd_maze_0: 'מגלגל לאט ומפיל כדורים', lvd_maze_1: 'מטה בעדינות', lvd_maze_2: 'אלוף ההטיות',
+  ch_start: 'התחל!', ch_beat: 'הזמן לנצח: {t} ({n})', ch_playing: '{n} משחק עכשיו…', ch_waiting: 'התור של {n}', ch_waitAll: 'סיימת! מחכים שכולם יסיימו…', ch_giveup: 'לוותר', ch_giveQ: 'לוותר על הסיבוב הזה?', ch_fail: 'לא סיים', ch_failT: 'לא הפעם… נסה שוב!', ch_done: 'הצלחת!', ch_next: 'לשלב {n}', ch_again: 'שוב את השלב', ch_tiltNo: 'אין חיישן הטיה — משחקים עם האצבע',
+  match_how: 'גרור קלף כדי להחליף מקום, והקש עליו כדי לסובב. בכל מקום ששני קלפים נוגעים — צריך להיווצר ציור שלם.',
+  buzz_how: 'גרור בכל מקום על המסך — הטבעת זזה יחד עם האצבע. העבר אותה מ-▶ ל-🏁 בלי לגעת בחוט!', buzz_howTilt: 'הטה את הטלפון כדי להזיז את הטבעת מ-▶ ל-🏁 בלי לגעת בחוט!', buzz_lives: 'יש לך {n} ❤️.',
+  maze_how: 'החזק את הטלפון ישר ולחץ "התחל", ואז הטה אותו כדי לגלגל את הכדורים לחורים.', maze_howFinger: 'שים אצבע על הלוח וגרור לכיוון שאליו הלוח נוטה — הכדורים יתגלגלו לשם.', maze_colors: 'כל כדור לחור בצבע שלו!', maze_traps: 'זהירות מהחורים האדומים ✕.',
+  st_win_match: 'מתאים מושלם', std_win_match: 'לנצח בהתאמת קלפים', st_win_buzz: 'יד יציבה', std_win_buzz: 'לנצח בחוט החשמלי', st_win_maze: 'מלך ההטיות', std_win_maze: 'לנצח במבוך הכדורים',
+  ru_match: '<p>על כל צלע של קלף יש <b>חצי ציור</b>. גוררים קלף כדי להחליף לו מקום, ומקישים עליו כדי לסובב. בכל מקום ששני קלפים נוגעים צריך להיווצר ציור שלם — אותה צורה ואותו צבע, חצי עליון עם חצי תחתון. צלע שמתאימה מסומנת בירוק ✅.</p><p>השלבים מתחילים בריבועים, ממשיכים למשולשים ומגיעים למשושים. 💡 שם קלף אחד במקום (+5 שניות). מי שמסיים הכי מהר — מנצח.</p>',
+  ru_buzz: '<p>מעבירים טבעת לאורך חוט מתפתל, מההתחלה ▶ עד הסוף 🏁 — <b>בלי לגעת בחוט</b>. נגיעה מזמזמת ⚡ ומורידה ❤️; מי שנשאר בלי לבבות — נפסל. כל נגיעה מוסיפה 2.5 שניות לזמן.</p><p>עם האצבע: גוררים בכל מקום על המסך והטבעת זזה יחד איתה (האצבע לא מסתירה אותה). אפשר גם להזיז בהטיית הטלפון. בכל שלב החוט ארוך יותר והטבעת קטנה יותר.</p>',
+  ru_maze: '<p>מטים את הטלפון והכדורים מתגלגלים. צריך להכניס <b>כל כדור לחור</b> — ובשלבים עם צבעים, כל כדור לחור בצבע שלו. כדור שכבר בחור יכול לצאת אם מטים חזק מדי! חור אדום ✕ מחזיר את הכדור להתחלה.</p><p>בלי חיישן הטיה (או במחשב): שמים אצבע על הלוח וגוררים לכיוון ההטיה, או משתמשים בחיצים במקלדת.</p>',
   r_again: 'פגיעה = עוד תור', r_againD: 'מי שפוגע בספינה יורה שוב', r_touch: 'ספינות יכולות לגעת', r_touchD: 'כבוי: חייב להיות מים בין ספינה לספינה', bs_fleetOf: 'הצי: ספינות באורך {n}',
   lvd_bs_0: 'יורה לכל מקום, לפעמים ממשיך ליד פגיעה', lvd_bs_1: 'יורה בשיטה ומסיים כל ספינה שפגע בה', lvd_bs_2: 'מחשב איפה הספינות יכולות להסתתר',
   lvd_dom_0: 'שם כל אבן שמתאימה', lvd_dom_1: 'נפטר קודם מהאבנים הגדולות', lvd_dom_2: 'זוכר מה חסר לכם וחוסם אתכם',
@@ -1903,7 +2262,7 @@ en: {
   st_first: 'First win', std_first: 'Win any game', st_win_sl: 'Ladder champ', std_win_sl: 'Win Snakes & Ladders', st_win_ludo: 'Ludo champ', std_win_ludo: 'Win Ludo', st_win_c4: 'Four!', std_win_c4: 'Win Four in a Row', st_win_ttt: 'Three in a row', std_win_ttt: 'Win Tic-Tac-Toe', st_win_mem: 'Pairs pairs', std_win_mem: 'Win Memory', st_win_dots: 'Box builder', std_win_dots: 'Win Dots & Boxes',
   st_ladders3: 'Climber', std_ladders3: 'Climb 3 ladders in one game', st_survivor: 'Snake survivor', std_survivor: 'Fall down 3 snakes — and still win', st_space: 'Astronaut', std_space: 'Win on the space board', st_capper: 'Token eater', std_capper: 'Capture 3 tokens in one Ludo game', st_three6: 'Three sixes', std_three6: 'Roll 6 three times in a row (and lose the turn 😅)',
   st_beatOwl: 'Wiser than the owl', std_beatOwl: 'Beat Professor Owl', st_beatTop: 'Unbeatable me', std_beatTop: 'Beat "almost unbeatable"', st_perfectDraw: 'Perfect draw', std_perfectDraw: 'Draw against "unbeatable" in Tic-Tac-Toe', st_elephant: 'Elephant memory', std_elephant: 'Beat "elephant memory"', st_memAce: 'Super brain', std_memAce: 'Find 4 pairs in a row in one turn', st_boxes5: 'Box chain', std_boxes5: 'Close 5 boxes in one turn',
-  st_family: 'Family night', std_family: 'Play with 3 or more people on one phone', st_online: 'Far away friends', std_online: 'Play an online game', st_allGames: 'Game rainbow', std_allGames: 'Play all 8 games', st_games10: '10 games', std_games10: 'Play 10 games', st_games50: '50 games', std_games50: 'Play 50 games',
+  st_family: 'Family night', std_family: 'Play with 3 or more people on one phone', st_online: 'Far away friends', std_online: 'Play an online game', st_allGames: 'Game rainbow', std_allGames: 'Play all 11 games', st_games10: '10 games', std_games10: 'Play 10 games', st_games50: '50 games', std_games50: 'Play 50 games',
   tk_snakeMe: 'Oh no, a snake! 🐍|Why me?! 😩|Ssss… that hurts', tk_snakeYou: 'Haha, a snake! 😆|Bye bye, top 👋|The snake was hungry 🐍', tk_ladderMe: 'Yes! A ladder! 🪜|Look at me go! 🚀|So lucky 😎', tk_ladderYou: 'So lucky! 😮|Not fair… 😤|Nice, nice 👏',
   tk_capMe: 'Sorry… not really 😈|Back home, quick! 🏠|Thanks for the token 😋', tk_capped: 'Oh come on! 😭|This will come back to you 😤|Ugh… from the start', tk_home: 'Another one home! 🏠|Almost done 😎', tk_three6: 'Three sixes?! 😱|Too much luck 😅', tk_six: 'Six! 🎲|Go go! 💨',
   tk_match: 'I remembered! 🧠|A pair! ✨|What a memory 😎', tk_box: 'My box! 📦|Another one 😋', tk_think: 'Hmm… 🤔|Wait, thinking…|Where to go…', tk_win: 'I won! 🏆|Another game? 😎|That was fun! 🎉', tk_lose: 'Well done! 👏|You got me this time 😮|Next time I win 😤', tk_draw: 'A draw! 🤝|Nobody won 😅',
@@ -1912,6 +2271,16 @@ en: {
   saveFail: 'Saving failed — the phone storage is full', cancel: 'Cancel', ok: 'OK', close: 'Close', home: 'Home', next: 'Next', skip: 'Skip', letsPlay: "Let's play!",
   g_sl: 'Snakes & Ladders', g_ludo: 'Ludo', g_c4: 'Four in a Row', g_ttt: 'Tic-Tac-Toe', g_mem: 'Memory', g_dots: 'Dots & Boxes',
   g_bs: 'Battleship', g_dom: 'Dominoes', opt_kids: 'kids', opt_face: 'On the tiles', face_dots: 'Dots', face_pics: 'Pictures',
+  g_match: 'Match the Cards', g_buzz: 'Buzz Wire', g_maze: 'Ball Maze', opt_stage: 'Stage', opt_ctrl: 'Control', ctrl_finger: 'Finger', ctrl_tilt: 'Tilt the phone', stageN: 'Stage {n}',
+  lvd_match_0: 'Takes its time — good for little ones', lvd_match_1: 'Steady pace', lvd_match_2: 'Very quick', lvd_buzz_0: 'Shaky hand — touches a lot', lvd_buzz_1: 'Steady hand', lvd_buzz_2: 'Surgeon hands', lvd_maze_0: 'Rolls slowly, drops balls', lvd_maze_1: 'Gentle tilting', lvd_maze_2: 'Tilt champion',
+  ch_start: 'Start!', ch_beat: 'Time to beat: {t} ({n})', ch_playing: '{n} is playing…', ch_waiting: "{n}'s turn", ch_waitAll: 'Done! Waiting for everyone…', ch_giveup: 'Give up', ch_giveQ: 'Give up this round?', ch_fail: 'did not finish', ch_failT: 'Not this time… try again!', ch_done: 'You did it!', ch_next: 'Stage {n}', ch_again: 'This stage again', ch_tiltNo: 'No tilt sensor — playing with the finger',
+  match_how: 'Drag a card to swap places and tap it to turn it. Wherever two cards touch, a whole picture must appear.',
+  buzz_how: 'Drag anywhere on the screen — the ring moves with your finger. Take it from ▶ to 🏁 without touching the wire!', buzz_howTilt: 'Tilt the phone to move the ring from ▶ to 🏁 without touching the wire!', buzz_lives: 'You have {n} ❤️.',
+  maze_how: 'Hold the phone flat, press "Start", then tilt it to roll the balls into the holes.', maze_howFinger: 'Put a finger on the board and drag the way you want it to tilt — the balls roll there.', maze_colors: 'Each ball into its own colour!', maze_traps: 'Watch out for the red holes ✕.',
+  st_win_match: 'Perfect match', std_win_match: 'Win at Match the Cards', st_win_buzz: 'Steady hand', std_win_buzz: 'Win at Buzz Wire', st_win_maze: 'Tilt king', std_win_maze: 'Win at Ball Maze',
+  ru_match: '<p>Every side of a card has <b>half a picture</b>. Drag a card to swap it and tap it to turn it. Wherever two cards touch, a whole picture must appear — same shape and colour, a top half with a bottom half. A matching side glows green ✅.</p><p>Stages start with squares, then triangles, then hexagons. 💡 puts one card in place (+5 s). Fastest wins.</p>',
+  ru_buzz: '<p>Move a ring along a twisting wire from ▶ to 🏁 — <b>without touching the wire</b>. A touch buzzes ⚡ and costs a ❤️; run out of hearts and you are out. Every touch adds 2.5 s.</p><p>With a finger: drag anywhere and the ring moves with it (your finger never hides it). You can also tilt the phone. Every stage the wire gets longer and the ring smaller.</p>',
+  ru_maze: '<p>Tilt the phone and the balls roll. Get <b>every ball into a hole</b> — on colour stages, each ball into its own colour. A ball already in a hole can roll out if you tilt too hard! A red hole ✕ sends the ball back to the start.</p><p>No tilt sensor (or on a computer): put a finger on the board and drag the way to tilt, or use the arrow keys.</p>',
   r_again: 'Hit = another shot', r_againD: 'Hit a ship and you fire again', r_touch: 'Ships may touch', r_touchD: 'Off: there must be water between ships', bs_fleetOf: 'Fleet: ships of length {n}',
   lvd_bs_0: 'Fires anywhere, sometimes keeps going near a hit', lvd_bs_1: 'Searches in a pattern and finishes every ship it hits', lvd_bs_2: 'Works out where ships can still hide',
   lvd_dom_0: 'Plays any tile that fits', lvd_dom_1: 'Gets rid of the big tiles first', lvd_dom_2: 'Remembers what you are missing and blocks you',
@@ -1983,13 +2352,13 @@ en: {
   ru_dots: '<p>On your turn draw one line between two dots. Close a box (its fourth side) and it is yours — <b>and you draw again</b>. When every box is closed, most boxes wins.</p><p>Tip: don\'t draw a box\'s third side — that gives it to your friend!</p>'
 },
 ru: { subtitle: 'Играет вся семья!', mNet: 'Онлайн с семьёй', mNetD: 'Комната с кодом и голосом', mCpu: 'Против компьютера', mHot: 'Все на одном телефоне', rules: 'Правила', stats: 'Статистика', replays: 'Повторы', settings: 'Настройки', about: 'О программе', resume: 'Продолжить', cancel: 'Отмена', close: 'Закрыть', home: 'Домой', next: 'Далее', skip: 'Пропустить', letsPlay: 'Играем!',
-  g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
+  g_match: 'Подбери карточки', g_buzz: 'Электропровод', g_maze: 'Лабиринт с шариками', g_bs: 'Морской бой', g_dom: 'Домино', g_sl: 'Змеи и лестницы', g_ludo: 'Лудо', g_c4: 'Четыре в ряд', g_ttt: 'Крестики-нолики', g_mem: 'Память', g_dots: 'Точки и квадраты', startGame: 'Начать!', players: 'Игроки', level: 'Уровень', options: 'Настройки игры', yourName: 'Ваше имя', language: 'Язык', theme: 'Тема', roll: 'Бросок!', yourTurn: 'Ваш ход!', yourTurnShort: 'Ваш ход!', playAgain: 'Ещё раз', draw: 'Ничья!', youWon: 'Вы победили!', createRoom: 'Создать комнату', join: 'Войти', ptt: 'Держите, чтобы говорить', menu: 'Меню', quitGame: 'Завершить игру',
   lv_kids: 'Для детей', lv_easy: 'Лёгкий', lv_med: 'Средний', lv_hard: 'Сложный', lv_top: 'Почти непобедимый', lv_perfect: 'Непобедимый', lv_elephant: 'Слоновья память' },
 es: { subtitle: '¡Juega toda la familia!', mNet: 'En línea con la familia', mNetD: 'Sala con código y voz', mCpu: 'Contra la computadora', mHot: 'Todos en un teléfono', rules: 'Reglas', stats: 'Estadísticas', replays: 'Repeticiones', settings: 'Ajustes', about: 'Acerca de', resume: 'Continuar', cancel: 'Cancelar', close: 'Cerrar', home: 'Inicio', next: 'Siguiente', skip: 'Saltar', letsPlay: '¡A jugar!',
-  g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
+  g_match: 'Une las cartas', g_buzz: 'Cable eléctrico', g_maze: 'Laberinto de bolas', g_bs: 'Hundir la flota', g_dom: 'Dominó', g_sl: 'Serpientes y escaleras', g_ludo: 'Parchís', g_c4: 'Cuatro en raya', g_ttt: 'Tres en raya', g_mem: 'Memoria', g_dots: 'Puntos y cajas', startGame: '¡Empezar!', players: 'Jugadores', level: 'Nivel', options: 'Opciones', yourName: 'Tu nombre', language: 'Idioma', theme: 'Tema', roll: '¡Tira!', yourTurn: '¡Tu turno!', yourTurnShort: '¡Tu turno!', playAgain: 'Otra vez', draw: '¡Empate!', youWon: '¡Ganaste!', createRoom: 'Crear sala', join: 'Unirse', ptt: 'Mantén para hablar', menu: 'Menú', quitGame: 'Terminar',
   lv_kids: 'Para niños', lv_easy: 'Fácil', lv_med: 'Medio', lv_hard: 'Difícil', lv_top: 'Casi invencible', lv_perfect: 'Invencible', lv_elephant: 'Memoria de elefante' },
 ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع العائلة', mNetD: 'غرفة برمز وصوت', mCpu: 'ضد الحاسوب', mHot: 'الجميع على هاتف واحد', rules: 'القواعد', stats: 'إحصائيات', replays: 'إعادة', settings: 'الإعدادات', about: 'حول', resume: 'متابعة', cancel: 'إلغاء', close: 'إغلاق', home: 'الرئيسية', next: 'التالي', skip: 'تخطَّ', letsPlay: 'هيا نلعب!',
-  g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
+  g_match: 'طابق البطاقات', g_buzz: 'السلك الكهربائي', g_maze: 'متاهة الكرات', g_bs: 'معركة السفن', g_dom: 'دومينو', g_sl: 'السلالم والثعابين', g_ludo: 'لودو', g_c4: 'أربعة في صف', g_ttt: 'إكس-أو', g_mem: 'الذاكرة', g_dots: 'النقاط والمربعات', startGame: 'ابدأ!', players: 'اللاعبون', level: 'المستوى', options: 'خيارات', yourName: 'اسمك', language: 'اللغة', theme: 'السمة', roll: 'ارمِ!', yourTurn: 'دورك!', yourTurnShort: 'دورك!', playAgain: 'مرة أخرى', draw: 'تعادل!', youWon: 'فزت!', createRoom: 'أنشئ غرفة', join: 'انضم', ptt: 'اضغط وتحدث', menu: 'القائمة', quitGame: 'إنهاء اللعبة',
   lv_kids: 'سهل للأطفال', lv_easy: 'سهل', lv_med: 'متوسط', lv_hard: 'صعب', lv_top: 'شبه مستحيل', lv_perfect: 'لا يُهزم', lv_elephant: 'ذاكرة فيل' }
 };
 
@@ -1997,12 +2366,12 @@ ar: { subtitle: 'العائلة كلها تلعب!', mNet: 'أونلاين مع 
 /* =====================================================================
    FamilyNest — app core (storage · settings · screens · sound · dice · confetti)
    ===================================================================== */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const P = 'family_';
 const FAST = /[?&]fast=1/.test(location.search);
-const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom'];
+const GAME_IDS = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots', 'bs', 'dom', 'match', 'buzz', 'maze'];
 
 /* ---------- storage shim: localStorage with an in-memory fallback ---------- */
 const LS = (() => {
@@ -3034,6 +3403,388 @@ UI.dom = (() => {
   };
 })();
 
+/* ---- boards3.js ---- */
+/* =====================================================================
+   FamilyNest 1.4 — boards for the challenge games (match · buzz · maze).
+   A "run" is one player's go at the stage. It is local to this phone; when
+   it ends the result is sent as one action { res }. Before a run: a start card
+   (who plays, the stage, the time to beat); after: waiting for the others.
+   ===================================================================== */
+const PROG = LS.get('prog', {});
+function progOf(g) { return PROG[g] || (PROG[g] = { max: 0, st: {}, best: {} }); }
+function saveProg(g, n, res) {
+  if (!res.ok) return; const P = progOf(g), L = GAMES[g].level(n), s = GAMES[g].stars(L, res);
+  P.max = Math.max(P.max, n); P.st[n] = Math.max(P.st[n] || 0, s); if (!P.best[n] || res.t < P.best[n]) P.best[n] = res.t; LS.set('prog', PROG);
+}
+const RUN = {
+  seat: V => CUR && CUR.mode === 'net' ? V.me : V.turn,
+  key: V => (CUR ? CUR.id : '') + ':' + RUN.seat(V),
+  fmt: ms => CH.fmt(ms),
+  // the best finished result so far (the time to beat)
+  best(V) { let b = null; V.res.forEach((r, s) => { if (r && r.ok && (!b || GAMES[V.game].score(r) < GAMES[V.game].score(b.r))) b = { r, s }; }); return b; },
+  card(el, V, cx, U) {
+    const ov = el.querySelector('.ch-ov'); if (!ov) return;
+    if (V.over || el._run) { ov.classList.add('hide'); return; }
+    const s = RUN.seat(V), b = RUN.best(V), done = V.res.map((r, k) => r ? '<span class="ch-r"><i>' + pemoji(V, k) + '</i>' + (r.ok ? '⏱ ' + iso(RUN.fmt(r.t)) + (r.x ? ' · ' + U.xIcon + iso(r.x) : '') : '✗') + '</span>' : '').join('');
+    let h = '';
+    if (cx.mine && el._doneKey !== RUN.key(V)) {
+      h = '<div class="ch-card" style="' + pcStyle(U.color(V, s)) + '"><div class="ch-who">' + pemoji(V, s) + '<b>' + esc(pname(V, s)) + '</b></div><div class="ch-st">' + T('stageN', { n: iso(V.cfg.level) }) + ' · ' + U.stageInfo(V) + '</div>'
+        + (b ? '<div class="ch-beat">🎯 ' + T('ch_beat', { t: iso(RUN.fmt(b.r.t)), n: esc(pname(V, b.s)) }) + '</div>' : '')
+        + '<p class="ch-how">' + U.how(V) + '</p><button class="btn main huge wide" id="chGo">▶ ' + T('ch_start') + '</button>' + (done ? '<div class="ch-done">' + done + '</div>' : '') + '</div>';
+    } else {
+      const p = V.players[V.turn], waitTxt = CUR.mode === 'net' && V.me >= 0 && V.res[V.me] ? T('ch_waitAll') : p && p.kind === 'bot' ? T('ch_playing', { n: esc(pname(V, V.turn)) }) : T('ch_waiting', { n: esc(pname(V, V.turn)) });
+      h = '<div class="ch-card dim"><div class="ch-who">' + pemoji(V, V.turn) + '</div><p class="ch-how">' + waitTxt + '</p>' + (done ? '<div class="ch-done">' + done + '</div>' : '') + '</div>';
+    }
+    if (ov.dataset.h !== h) { ov.innerHTML = h; ov.dataset.h = h; const go = ov.querySelector('#chGo'); if (go) go.onclick = () => U.begin(el, curView()); }
+    ov.classList.remove('hide');
+  },
+  bar(V, U) {
+    const el = $('#board'); if (!el || !el._run) return null;
+    return '<div class="ch-bar"><span>⏱ <b class="ltr" id="chT">0.0</b></span><span id="chX"></span></div>' + (U.hint ? '<button class="btn" id="chHint" aria-label="hint">💡</button>' : '') + '<button class="btn" id="chGive" aria-label="give up">🏳</button>';
+  },
+  bindBar(U) {
+    const el = $('#board');
+    const g = $('#chGive'); if (g) g.onclick = () => confirmBox(T('ch_giveQ'), T('ch_giveup'), () => { if (el._run) U.end(el, false); });
+    const h = $('#chHint'); if (h) h.onclick = () => { if (el._run && U.hint) U.hint(el); };
+  },
+  // start: remember the run, refresh the bar, start the clock
+  start(el, V, extra) {
+    el._run = Object.assign({ key: RUN.key(V), seat: RUN.seat(V), t0: performance.now(), x: 0, level: V.cfg.level, game: V.game }, extra || {});
+    el.querySelector('.ch-ov').classList.add('hide'); beep('turn'); buzz(20);
+    renderBar(curView()); RUN.tick(el);
+  },
+  tick(el) { const r = el._run; if (!r) return; const t = $('#chT'); if (t) t.textContent = RUN.fmt(performance.now() - r.t0); },
+  // finish: send the result (retry while an animation is running)
+  finish(el, res) {
+    const r = el._run; if (!r) return; el._run = null; el._doneKey = r.key;
+    if (res.ok) { beep('win'); confetti(70); } else { beep('lose'); buzz(80); }
+    const V0 = curView(); if (V0 && (CUR.mode !== 'net' || V0.me >= 0)) { const h = V0.players[r.seat]; if (h && h.kind === 'human') saveProg(r.game, r.level, res); }
+    let tries = 0;
+    const send = () => { const V = curView(); if (!V || V.over) return; if (canAct(V)) { act({ res }); return; } if (++tries < 40) setTimeout(send, 250); };
+    setTimeout(send, res.ok ? 600 : 300);
+    renderBar(curView());
+  }
+};
+
+/* ================= match · edge-matching cards ================= */
+UI.match = (() => {
+  const E = () => GAMES.match, D = 180 / Math.PI;
+  const Lof = V => E().level(V.cfg.level);
+  function bbox(L) { const xs = [], ys = []; L.S.forEach(s => s.v.forEach(p => { xs.push(p[0]); ys.push(p[1]); })); const m = .18; return [Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m]; }
+  // a picture centred at 0, radius 1, "up" = −y
+  function pic(P) {
+    if (P.t === 'animal') {
+      const e = AVATARS[AV_IDS.indexOf(P.a)] || '🐸';
+      return svg('circle', { cx: 0, cy: 0, r: 1, fill: '#fff' }) + (ART_ON ? '<image href="av-' + P.a + '.webp" x="-1" y="-1" width="2" height="2"/>' : svg('text', { x: 0, y: .42, 'text-anchor': 'middle', 'font-size': 1.3 }, e));
+    }
+    const c = P.c, st = { fill: c, stroke: '#fff', 'stroke-width': .12, 'stroke-linejoin': 'round' };
+    switch (P.s) {
+      case 'circle': return svg('circle', Object.assign({ cx: 0, cy: 0, r: .92 }, st)) + svg('circle', { cx: 0, cy: 0, r: .42, fill: 'rgba(255,255,255,.5)' });
+      case 'heart': return svg('path', Object.assign({ d: 'M0,.9 C-1.2,0 -1,-1 -.5,-1 C-.2,-1 0,-.75 0,-.55 C0,-.75 .2,-1 .5,-1 C1,-1 1.2,0 0,.9Z' }, st));
+      case 'star': { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .42 : .98; d += (i ? 'L' : 'M') + (Math.cos(a) * r).toFixed(3) + ',' + (Math.sin(a) * r).toFixed(3); } return svg('path', Object.assign({ d: d + 'Z' }, st)); }
+      case 'tri': return svg('path', Object.assign({ d: 'M0,-.95 L.9,.7 L-.9,.7Z' }, st));
+      case 'drop': return svg('path', Object.assign({ d: 'M0,-.98 C.5,-.35 .8,0 .8,.32 C.8,.75 .42,.98 0,.98 C-.42,.98 -.8,.75 -.8,.32 C-.8,0 -.5,-.35 0,-.98Z' }, st));
+      case 'moon': return svg('path', Object.assign({ d: 'M.35,-.92 A.95,.95 0 1,0 .35,.92 A.72,.72 0 1,1 .35,-.92Z' }, st));
+      case 'diamond': return svg('path', Object.assign({ d: 'M0,-.98 L.72,0 L0,.98 L-.72,0Z' }, st));
+      case 'flower': { let g = ''; for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g += svg('circle', Object.assign({ cx: (Math.cos(a) * .52).toFixed(3), cy: (Math.sin(a) * .52).toFixed(3), r: .42 }, st)); } return g + svg('circle', { cx: 0, cy: 0, r: .36, fill: '#ffeb3b', stroke: '#fff', 'stroke-width': .1 }); }
+    }
+    return '';
+  }
+  // one tile drawn in its own frame (base angle 0, centre 0,0)
+  function tileSVG(L, t, uid) {
+    const N = L.S[0].N, R = L.S[0].R, v = []; for (let k = 0; k < N; k++) { const a = k * 2 * Math.PI / N; v.push([R * Math.cos(a), R * Math.sin(a)]); }
+    const pts = v.map(p => p[0].toFixed(4) + ',' + p[1].toFixed(4)).join(' '), ap = R * Math.cos(Math.PI / N), el = 2 * R * Math.sin(Math.PI / N), sz = Math.min(el * .54, ap * 1.6) / 2;
+    let g = '<clipPath id="mc' + uid + '"><polygon points="' + pts + '"/></clipPath><g clip-path="url(#mc' + uid + ')">' + svg('polygon', { points: pts, fill: '#fff8e8' });
+    L.tiles[t].forEach((e, k) => {
+      const na = (k + .5) * 360 / N, mx = ap * Math.cos(na / D), my = ap * Math.sin(na / D), rho = na + (e.h === 0 ? 270 : 90);
+      g += '<g transform="translate(' + mx.toFixed(4) + ' ' + my.toFixed(4) + ') rotate(' + rho.toFixed(2) + ') scale(' + sz.toFixed(4) + ')">' + pic(L.pics[e.p]) + '</g>';
+    });
+    return g + '</g>' + svg('polygon', { points: pts, fill: 'none', stroke: 'rgba(60,40,10,.55)', 'stroke-width': .035, 'stroke-linejoin': 'round' });
+  }
+  function place(el, L, i, t, ang, lift) {
+    const g = el.querySelector('.mt[data-t="' + t + '"]'); if (!g) return;
+    const s = L.S[i]; g.style.transform = 'translate(' + s.c[0] + 'px,' + s.c[1] + 'px) rotate(' + ang + 'deg)' + (lift ? ' scale(1.08)' : '');
+  }
+  function layoutAll(el, L, st) {
+    const N = L.S[0].N;
+    st.perm.forEach((t, i) => { if (st.ang[t] == null) st.ang[t] = L.S[i].th * D + st.rot[i] * 360 / N; place(el, L, i, t, st.ang[t]); });
+    // shared edges that already match glow
+    const ok = E().matchedEdges(L, st.perm, st.rot); let h = '';
+    L.adj.forEach(([i, ei], k) => { if (!ok[k]) return; const s = L.S[i], a = s.v[ei], b = s.v[(ei + 1) % s.N]; h += svg('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#3ddc84', 'stroke-width': .07, 'stroke-linecap': 'round' }); });
+    el.querySelector('.mt-ok').innerHTML = h;
+    const x = $('#chX'); if (x && el._run) x.textContent = '✅ ' + ok.filter(Boolean).length + '/' + L.adj.length;
+  }
+  function fresh(L) { return { perm: L.start.perm.slice(), rot: L.start.rot.slice(), ang: {} }; }
+  return {
+    xIcon: '🔄', hint: true,
+    aspect: V => { const b = bbox(Lof(V)); return Math.max(.62, (b[2] - b[0]) / (b[3] - b[1])); },
+    color: (V, s) => s,
+    chip: (V, s) => { const r = V.res && V.res[s]; return r ? (r.ok ? '⏱<span class="ltr">' + RUN.fmt(r.t) + '</span>' : '✗') : ''; },
+    stageInfo: V => { const L = Lof(V); return ({ 3: '🔺', 4: '🟧', 6: '⬢' })[L.S[0].N] + ' × ' + iso(L.S.length); },
+    how: () => T('match_how'),
+    mount(el, V) {
+      const L = Lof(V), b = bbox(L);
+      el.innerHTML = '<svg class="base mt-svg" viewBox="' + b[0] + ' ' + b[1] + ' ' + (b[2] - b[0]) + ' ' + (b[3] - b[1]) + '"><g class="mt-slots">' + L.S.map(s => svg('polygon', { points: s.v.map(p => p.join(',')).join(' '), fill: 'rgba(0,0,0,.18)', stroke: 'rgba(255,255,255,.12)', 'stroke-width': .02 })).join('') + '</g>'
+        + L.tiles.map((t, k) => '<g class="mt" data-t="' + k + '">' + tileSVG(L, k, k) + '</g>').join('') + '<g class="mt-ok" style="pointer-events:none"></g></svg><div class="ch-ov hide"></div>';
+      el._L = L; el._st = fresh(L); el._run = null;
+      const sv = el.querySelector('svg');
+      sv.addEventListener('pointerdown', e => this.down(el, e)); sv.addEventListener('pointermove', e => this.move(el, e)); sv.addEventListener('pointerup', e => this.up(el, e)); sv.addEventListener('pointercancel', () => { el._drag = null; layoutAll(el, el._L, el._st); });
+      layoutAll(el, L, el._st); this.draw(el, V);
+    },
+    size() {},
+    draw(el, V, cx) { cx = cx || this._cx || {}; if (!el._run && el._L) layoutAll(el, el._L, el._st); RUN.card(el, V, cx, this); },
+    begin(el, V) { el._st = fresh(el._L); el.querySelectorAll('.mt').forEach(g => g.classList.add('live')); layoutAll(el, el._L, el._st); RUN.start(el, V, { hints: 0 }); this.loop(el); },
+    loop(el) { if (!el._run) return; RUN.tick(el); requestAnimationFrame(() => this.loop(el)); },
+    pt(el, e) { const sv = el.querySelector('svg'), m = sv.getScreenCTM().inverse(), p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return [p.x, p.y]; },
+    slotAt(L, p) { let best = -1, bd = 1e9; L.S.forEach((s, i) => { const d = Math.hypot(s.c[0] - p[0], s.c[1] - p[1]); if (d < bd) { bd = d; best = i; } }); return bd < L.S[0].R * 1.1 ? best : -1; },
+    down(el, e) {
+      if (!el._run) return; const L = el._L, p = this.pt(el, e), i = this.slotAt(L, p); if (i < 0) return;
+      el._drag = { i, p0: p, moved: false }; try { e.target.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault();
+      const t = el._st.perm[i], g = el.querySelector('.mt[data-t="' + t + '"]'); g.classList.add('drag'); g.parentNode.appendChild(g); el.querySelector('svg').appendChild(el.querySelector('.mt-ok'));
+    },
+    move(el, e) {
+      const d = el._drag; if (!d) return; const p = this.pt(el, e), L = el._L, dx = p[0] - d.p0[0], dy = p[1] - d.p0[1];
+      if (Math.hypot(dx, dy) > L.S[0].R * .18) d.moved = true;
+      if (!d.moved) return;
+      const s = L.S[d.i], t = el._st.perm[d.i], g = el.querySelector('.mt[data-t="' + t + '"]');
+      g.style.transform = 'translate(' + (s.c[0] + dx) + 'px,' + (s.c[1] + dy) + 'px) rotate(' + el._st.ang[t] + 'deg) scale(1.1)';
+    },
+    up(el, e) {
+      const d = el._drag; if (!d) return; el._drag = null; const L = el._L, st = el._st, N = L.S[0].N;
+      el.querySelectorAll('.mt.drag').forEach(g => g.classList.remove('drag'));
+      if (d.moved) {
+        const j = this.slotAt(L, this.pt(el, e));
+        if (j >= 0 && j !== d.i) {
+          // swap; a tile moving between an up and a down triangle turns with the slot
+          const ti = st.perm[d.i], tj = st.perm[j];
+          [st.perm[d.i], st.perm[j]] = [tj, ti]; [st.rot[d.i], st.rot[j]] = [st.rot[j], st.rot[d.i]];
+          st.ang[ti] += (L.S[j].th - L.S[d.i].th) * D + (st.rot[j] - st.rot[d.i] === 0 ? 0 : 0);
+          st.ang[tj] += (L.S[d.i].th - L.S[j].th) * D;
+          // keep the logical turn in step with the drawn angle
+          st.rot[j] = this.rotOf(L, j, st.ang[ti]); st.rot[d.i] = this.rotOf(L, d.i, st.ang[tj]);
+          el._run.x++; beep('place'); buzz(10);
+        } else beep('flip');
+      } else { st.ang[st.perm[d.i]] += 360 / N; st.rot[d.i] = (st.rot[d.i] + 1) % N; el._run.x++; beep('flip'); }
+      layoutAll(el, L, st); this.check(el);
+    },
+    rotOf(L, i, ang) { const N = L.S[0].N, k = Math.round((ang - L.S[i].th * D) / (360 / N)); return ((k % N) + N) % N; },
+    check(el) {
+      if (!el._run) return; const L = el._L, st = el._st;
+      if (E().solved(L, st.perm, st.rot)) { el.querySelector('svg').classList.add('won'); setTimeout(() => el.querySelector('svg') && el.querySelector('svg').classList.remove('won'), 1400); this.end(el, true); }
+    },
+    // a hint puts one tile in its right place (+5 s)
+    hint(el) {
+      const L = el._L, st = el._st, N = L.S[0].N; let i = -1;
+      for (let k = 0; k < L.S.length; k++) if (st.perm[k] !== k || st.rot[k] !== 0) { i = k; break; }
+      if (i < 0) return;
+      const j = st.perm.indexOf(i), ti = st.perm[i];
+      if (j !== i) { [st.perm[i], st.perm[j]] = [st.perm[j], st.perm[i]]; st.ang[ti] += (L.S[j].th - L.S[i].th) * D; st.ang[i] += (L.S[i].th - L.S[j].th) * D; st.rot[j] = this.rotOf(L, j, st.ang[ti]); }
+      const t = i; let a = st.ang[t], base = L.S[i].th * D; while (this.rotOf(L, i, a) !== 0) a += 360 / N; st.ang[t] = a; st.rot[i] = 0;
+      el._run.t0 -= 5000; el._run.hints++; beep('match'); layoutAll(el, L, st); this.check(el);
+    },
+    end(el, ok) { const r = el._run; if (!r) return; const t = performance.now() - r.t0, L = el._L, okE = E().matchedEdges(L, el._st.perm, el._st.rot); el.querySelectorAll('.mt').forEach(g => g.classList.remove('live')); RUN.finish(el, { ok, t, x: r.x, p: okE.filter(Boolean).length / Math.max(1, L.adj.length) }); },
+    async anim(el, V, evs) { await chAnim(el, V, evs, this); },
+    tap() { return null; },
+    status: (V, cx) => '',
+    bar(V) { return RUN.bar(V, this); }, bindBar() { RUN.bindBar(this); }
+  };
+})();
+
+// shared: when someone finishes (another phone, a computer character)
+async function chAnim(el, V, evs, U) {
+  for (const e of evs) if (e.e === 'res') {
+    const r = e.r; beep(r.ok ? 'match' : 'miss');
+    bubbleSeat(e.s, r.ok ? '🏁' : '💥', 'big', 1300);
+    toastBoard(pemoji(V, e.s) + ' ' + esc(pname(V, e.s)) + ': ' + (r.ok ? '⏱ ' + iso(RUN.fmt(r.t)) + (r.x ? ' · ' + U.xIcon + iso(r.x) : '') : T('ch_fail')), 1800);
+    await wait(650 * SPEED());
+  }
+  U.draw(el, V, U._cx);
+}
+
+/* ---------- canvas helpers (buzz, maze) ---------- */
+function chCanvas(el, Lv) {
+  let c = el.querySelector('canvas'); if (!c) return null;
+  const w = el.clientWidth, h = el.clientHeight, dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr * w / Lv.W, 0, 0, dpr * h / Lv.H, 0, 0); return x;
+}
+// tilt: device orientation → −1..1 on the board axes, relative to how the phone was held at the start
+const TILT = {
+  on: false, b0: null, g0: null, beta: 0, gamma: 0, seen: 0,
+  h(e) { if (e.beta == null) return; TILT.beta = e.beta; TILT.gamma = e.gamma; TILT.seen = performance.now(); },
+  async start() {
+    try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) { const p = await DeviceOrientationEvent.requestPermission(); if (p !== 'granted') return false; } } catch (x) { return false; }
+    if (!TILT.on) { addEventListener('deviceorientation', TILT.h); TILT.on = true; }
+    try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(() => {}); } catch (x) {}
+    TILT.b0 = null; return 'DeviceOrientationEvent' in window;
+  },
+  calib() { TILT.b0 = TILT.beta; TILT.g0 = TILT.gamma; },
+  live: () => performance.now() - TILT.seen < 600,
+  read(range) {
+    if (TILT.b0 == null && TILT.live()) TILT.calib();
+    let gx = (TILT.gamma - (TILT.g0 || 0)) / range, gy = (TILT.beta - (TILT.b0 || 0)) / range;
+    const a = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    if (a === 90) [gx, gy] = [gy, -gx]; else if (a === -90 || a === 270) [gx, gy] = [-gy, gx]; else if (a === 180) [gx, gy] = [-gx, -gy];
+    return [Math.max(-1, Math.min(1, gx)), Math.max(-1, Math.min(1, gy))];
+  }
+};
+function chTone() {   // a continuous buzz while the ring touches the wire
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; o.frequency.value = 118; o2.type = 'square'; o2.frequency.value = 236; g.gain.value = 0; o.connect(g); o2.connect(g); g.connect(AC.destination); o.start(); o2.start(); return { set(on) { g.gain.setTargetAtTime(on && ST.sound && !FAST ? .07 : 0, AC.currentTime, .015); }, stop() { try { o.stop(); o2.stop(); } catch (x) {} } }; } catch (e) { return { set() {}, stop() {} }; }
+}
+
+/* ================= buzz · the electric wire ================= */
+UI.buzz = (() => {
+  const E = () => GAMES.buzz, Lof = V => E().level(V.cfg.level);
+  function paint(el, L, S, now) {
+    const x = chCanvas(el, L); if (!x) return; const r = el._run;
+    // board: brushed metal
+    const bg = x.createLinearGradient(0, 0, L.W, L.H); bg.addColorStop(0, '#3b4652'); bg.addColorStop(1, '#1d242c'); x.fillStyle = bg; x.fillRect(0, 0, L.W, L.H);
+    x.strokeStyle = 'rgba(255,255,255,.04)'; x.lineWidth = .3; for (let k = 0; k < L.H; k += 4) { x.beginPath(); x.moveTo(0, k); x.lineTo(L.W, k + 2); x.stroke(); }
+    if (r && S.touch) { x.fillStyle = 'rgba(255,40,40,' + (0.18 + 0.12 * Math.sin(now / 30)) + ')'; x.fillRect(0, 0, L.W, L.H); }
+    const P = L.pts, A = P[0], Z = P[P.length - 1];
+    // posts
+    const post = (p, c) => { x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0] + .8, p[1] + 1.2, 4.2, 0, 7); x.fill(); x.fillStyle = c; x.beginPath(); x.arc(p[0], p[1], 4, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,.5)'; x.beginPath(); x.arc(p[0] - 1.2, p[1] - 1.2, 1.3, 0, 7); x.fill(); };
+    post(A, '#2f9e4f'); post(Z, '#e8453c');
+    // wire: shadow, copper, highlight; the part already done glows
+    const line = (from, to, w, c) => { x.strokeStyle = c; x.lineWidth = w; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(P[from][0], P[from][1]); for (let i = from + 1; i <= to; i++) x.lineTo(P[i][0], P[i][1]); x.stroke(); };
+    x.save(); x.translate(.7, 1.1); line(0, P.length - 1, L.wire, 'rgba(0,0,0,.45)'); x.restore();
+    line(0, P.length - 1, L.wire, '#c9803f'); line(0, P.length - 1, L.wire * .38, '#ffd8a8');
+    if (r && S.best > 0) { x.globalAlpha = .55; line(0, Math.min(S.best + 1, P.length - 1), L.wire * 1.9, '#59ffa0'); x.globalAlpha = 1; }
+    // the ring and its handle
+    const rx = S.x, ry = S.y, rc = r && S.touch ? '#ff5252' : '#e3e9ee';
+    x.strokeStyle = 'rgba(0,0,0,.4)'; x.lineWidth = L.ring + .6; x.beginPath(); x.arc(rx + .6, ry + 1, L.R, 0, 7); x.stroke();
+    x.strokeStyle = '#5d4037'; x.lineWidth = 2.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(rx + L.R * .72, ry + L.R * .72); x.lineTo(rx + L.R * .72 + 7, ry + L.R * .72 + 7); x.stroke();
+    x.strokeStyle = rc; x.lineWidth = L.ring; x.beginPath(); x.arc(rx, ry, L.R, 0, 7); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = L.ring * .35; x.beginPath(); x.arc(rx, ry, L.R, 3.6, 5.2); x.stroke();
+    // sparks
+    if (r && r.sparks) { r.sparks = r.sparks.filter(s => (s.life -= 1 / 60) > 0); for (const s of r.sparks) { s.x += s.vx / 60; s.y += s.vy / 60; s.vy += 40 / 60; x.fillStyle = 'rgba(255,' + (200 + 55 * s.life | 0) + ',80,' + s.life * 2 + ')'; x.fillRect(s.x, s.y, .9, .9); } }
+    if (!r) { x.fillStyle = 'rgba(255,255,255,.85)'; x.font = '5px Rubik,sans-serif'; x.textAlign = 'center'; x.fillText('▶', A[0], A[1] - 6); x.fillText('🏁', Z[0], Z[1] - 6); }
+  }
+  return {
+    xIcon: '⚡',
+    aspect: () => 100 / 140,
+    color: (V, s) => s,
+    chip: (V, s) => UI.match.chip(V, s),
+    stageInfo: V => { const L = Lof(V); return '⚡ ' + iso(Math.round(L.len)) + ' · ⭕ ' + iso(L.R.toFixed(1)); },
+    how: V => (V.cfg.ctrl === 'tilt' ? T('buzz_howTilt') : T('buzz_how')) + ' ' + T('buzz_lives', { n: iso(Lof(V).lives) }),
+    mount(el, V) { el.innerHTML = '<canvas class="base ch-cv"></canvas><div class="ch-ov hide"></div>'; el._L = Lof(V); el._S = E().start(el._L); el._run = null; const c = el.querySelector('canvas'); c.addEventListener('pointerdown', e => this.pdown(el, e)); c.addEventListener('pointermove', e => this.pmove(el, e)); c.addEventListener('pointerup', () => { el._p = null; }); c.addEventListener('pointercancel', () => { el._p = null; }); this.draw(el, V); },
+    size(el) { if (el._L) paint(el, el._L, el._S, performance.now()); },
+    draw(el, V, cx) { cx = cx || this._cx || {}; if (!el._run && el._L) { el._S = E().start(el._L); paint(el, el._L, el._S, 0); } RUN.card(el, V, cx, this); },
+    async begin(el, V) {
+      const L = el._L; el._S = E().start(L); let tilt = V.cfg.ctrl === 'tilt';
+      if (tilt && !(await TILT.start())) { tilt = false; toast(T('ch_tiltNo')); }
+      RUN.start(el, V, { lives: L.lives, sparks: [], tone: chTone(), tilt, last: performance.now(), tAcc: 0 });
+      if (tilt) { if (TILT.live()) TILT.calib(); else TILT.b0 = null; }
+      this.hud(el); this.loop(el);
+    },
+    hud(el) { const r = el._run, x = $('#chX'); if (r && x) x.textContent = '❤️'.repeat(Math.max(0, r.lives)) + (r.x ? ' ⚡' + r.x : ''); },
+    pdown(el, e) { if (!el._run) return; el._p = [e.clientX, e.clientY]; try { e.target.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); },
+    // the ring moves by how much the finger moves (the finger never hides it)
+    pmove(el, e) {
+      const r = el._run; if (!r || !el._p || r.tilt) return; const k = el._L.W / el.clientWidth, dx = (e.clientX - el._p[0]) * k, dy = (e.clientY - el._p[1]) * k; el._p = [e.clientX, e.clientY];
+      this.moveBy(el, dx, dy);
+    },
+    moveBy(el, dx, dy) {
+      const r = el._run, S = el._S, L = el._L, n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / .6));
+      for (let i = 0; i < n && el._run; i++) { const ev = E().step(L, S, S.x + dx / n, S.y + dy / n); if (ev === 'touch') this.zap(el); if (S.done) { this.end(el, true); return; } }
+    },
+    zap(el) {
+      const r = el._run, S = el._S; if (!r) return; r.x++; r.lives--; r.lastZap = performance.now();
+      buzz(120); for (let k = 0; k < 18; k++) { const a = Math.random() * 7, v = 20 + Math.random() * 40; r.sparks.push({ x: S.x, y: S.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .3 + Math.random() * .3 }); }
+      this.hud(el); if (r.lives <= 0) setTimeout(() => this.end(el, false), 250);
+    },
+    loop(el) {
+      const r = el._run; if (!r) return; const now = performance.now(), dt = Math.min(.05, (now - r.last) / 1000); r.last = now;
+      if (r.tilt) { const [gx, gy] = TILT.read(18); this.moveBy(el, gx * 26 * dt, gy * 26 * dt); }
+      if (!el._run) return;
+      // staying on the wire keeps buzzing — and costs another touch every second
+      if (el._S.touch && now - (r.lastZap || 0) > 1000) this.zap(el);
+      r.tone.set(el._S.touch); RUN.tick(el); paint(el, el._L, el._S, now);
+      requestAnimationFrame(() => this.loop(el));
+    },
+    end(el, ok) { const r = el._run; if (!r) return; r.tone.set(false); setTimeout(() => r.tone.stop(), 200); const t = performance.now() - r.t0, L = el._L; RUN.finish(el, { ok, t, x: r.x, p: el._S.best / Math.max(1, L.pts.length - 1) }); paint(el, L, el._S, 0); },
+    async anim(el, V, evs) { await chAnim(el, V, evs, this); },
+    tap() { return null; }, status: () => '',
+    bar(V) { return RUN.bar(V, this); }, bindBar() { RUN.bindBar(this); this.hud($('#board')); }
+  };
+})();
+
+/* ================= maze · tilt maze with steel balls ================= */
+UI.maze = (() => {
+  const E = () => GAMES.maze, Lof = V => E().level(V.cfg.level);
+  function paint(el, L, S, tilt) {
+    const x = chCanvas(el, L); if (!x) return;
+    const wood = x.createLinearGradient(0, 0, L.W, L.H); wood.addColorStop(0, '#d9a066'); wood.addColorStop(1, '#b7773d'); x.fillStyle = wood; x.fillRect(0, 0, L.W, L.H);
+    x.strokeStyle = 'rgba(90,50,15,.12)'; x.lineWidth = .5; for (let k = 3; k < L.H; k += 5) { x.beginPath(); x.moveTo(0, k); x.bezierCurveTo(30, k + 2, 70, k - 2, L.W, k + 1); x.stroke(); }
+    // holes and traps
+    for (const o of L.holes) { const g = x.createRadialGradient(o.x - 1, o.y - 1, .5, o.x, o.y, L.RH); g.addColorStop(0, '#000'); g.addColorStop(1, '#3a2210'); x.fillStyle = g; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = o.c >= 0 ? L.BALLC[o.c] : '#ffd54a'; x.lineWidth = .9; x.beginPath(); x.arc(o.x, o.y, L.RH + .5, 0, 7); x.stroke(); }
+    for (const o of L.traps) { x.fillStyle = '#120806'; x.beginPath(); x.arc(o.x, o.y, L.RH, 0, 7); x.fill(); x.strokeStyle = '#ff1744'; x.lineWidth = .7; x.setLineDash([1.2, 1]); x.beginPath(); x.arc(o.x, o.y, L.RH + .4, 0, 7); x.stroke(); x.setLineDash([]); x.fillStyle = '#ff5252'; x.font = '4px sans-serif'; x.textAlign = 'center'; x.fillText('✕', o.x, o.y + 1.4); }
+    // walls (raised wooden strips)
+    x.lineCap = 'round';
+    for (const w of L.walls) { x.strokeStyle = 'rgba(40,20,5,.45)'; x.lineWidth = L.WT + .8; x.beginPath(); x.moveTo(w[0] + .5, w[1] + .8); x.lineTo(w[2] + .5, w[3] + .8); x.stroke(); }
+    for (const w of L.walls) { x.strokeStyle = '#7a4518'; x.lineWidth = L.WT; x.beginPath(); x.moveTo(w[0], w[1]); x.lineTo(w[2], w[3]); x.stroke(); x.strokeStyle = 'rgba(255,220,170,.35)'; x.lineWidth = L.WT * .3; x.beginPath(); x.moveTo(w[0], w[1] - .3); x.lineTo(w[2], w[3] - .3); x.stroke(); }
+    // balls: steel with a colour band
+    const sx = (tilt ? tilt[0] : 0) * 1.2 + .6, sy = (tilt ? tilt[1] : 0) * 1.2 + 1;
+    for (const b of S.balls) {
+      if (b.fall > 0) continue; const R = b.inH >= 0 ? L.RB * .9 : L.RB;
+      x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.arc(b.x + sx, b.y + sy, R, 0, 7); x.fill();
+      const g = x.createRadialGradient(b.x - R * .4, b.y - R * .45, R * .1, b.x, b.y, R); g.addColorStop(0, '#ffffff'); g.addColorStop(.35, '#c9d1d9'); g.addColorStop(1, '#4b5563'); x.fillStyle = g; x.beginPath(); x.arc(b.x, b.y, R, 0, 7); x.fill();
+      if (L.colors) { x.strokeStyle = L.BALLC[b.c]; x.lineWidth = .9; x.beginPath(); x.arc(b.x, b.y, R * .62, 0, 7); x.stroke(); }
+    }
+    // joystick (finger control)
+    if (el._joy) { const j = el._joy; x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = .6; x.beginPath(); x.arc(j.x, j.y, 9, 0, 7); x.stroke(); x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.arc(j.x + j.gx * 9, j.y + j.gy * 9, 3, 0, 7); x.fill(); }
+  }
+  return {
+    xIcon: '🕳',
+    aspect: () => 100 / 140,
+    color: (V, s) => s,
+    chip: (V, s) => UI.match.chip(V, s),
+    stageInfo: V => { const L = Lof(V); return '⚪ × ' + iso(L.balls) + (L.traps.length ? ' · ✕ ' + iso(L.traps.length) : '') + (L.colors ? ' · 🎨' : ''); },
+    how: V => (V.cfg.ctrl === 'finger' ? T('maze_howFinger') : T('maze_how')) + (Lof(V).colors ? ' ' + T('maze_colors') : '') + (Lof(V).traps.length ? ' ' + T('maze_traps') : ''),
+    mount(el, V) {
+      el.innerHTML = '<canvas class="base ch-cv"></canvas><div class="ch-ov hide"></div>'; el._L = Lof(V); el._S = E().create(el._L); el._run = null;
+      const c = el.querySelector('canvas'), k = () => el._L.W / el.clientWidth;
+      const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * k(), (e.clientY - r.top) * k()]; };
+      c.addEventListener('pointerdown', e => { if (!el._run || el._run.tilt) return; const p = pos(e); el._joy = { x: p[0], y: p[1], gx: 0, gy: 0 }; try { c.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); });
+      c.addEventListener('pointermove', e => { const j = el._joy; if (!j) return; const p = pos(e); j.gx = Math.max(-1, Math.min(1, (p[0] - j.x) / 14)); j.gy = Math.max(-1, Math.min(1, (p[1] - j.y) / 14)); });
+      const off = () => { el._joy = null; }; c.addEventListener('pointerup', off); c.addEventListener('pointercancel', off);
+      this.draw(el, V);
+    },
+    size(el) { if (el._L) paint(el, el._L, el._S); },
+    draw(el, V, cx) { cx = cx || this._cx || {}; if (!el._run && el._L) { el._S = E().create(el._L); paint(el, el._L, el._S); } RUN.card(el, V, cx, this); },
+    async begin(el, V) {
+      const L = el._L; el._S = E().create(L); let tilt = V.cfg.ctrl !== 'finger';
+      if (tilt && !(await TILT.start())) { tilt = false; toast(T('ch_tiltNo')); }
+      RUN.start(el, V, { tilt, last: performance.now(), inH: el._S.balls.map(() => -1), keys: {} });
+      if (tilt) { if (TILT.live()) TILT.calib(); else TILT.b0 = null; setTimeout(() => { const r = el._run; if (r && r.tilt && !TILT.live()) { r.tilt = false; toast(T('ch_tiltNo'), 3200); } }, 1200); }
+      this.hud(el); this.loop(el);
+    },
+    hud(el) { const r = el._run, x = $('#chX'); if (!r || !x) return; const S = el._S, inn = S.balls.filter(b => b.inH >= 0 && b.fall <= 0).length; x.textContent = '⚪ ' + inn + '/' + el._L.balls + (S.falls ? ' · 🕳' + S.falls : ''); },
+    loop(el) {
+      const r = el._run; if (!r) return; const now = performance.now(), dt = Math.min(.05, (now - r.last) / 1000); r.last = now;
+      let g = [0, 0];
+      if (r.tilt) g = TILT.read(20);
+      else if (el._joy) g = [el._joy.gx, el._joy.gy];
+      const K = UI.maze.keys; if (K.l || K.r || K.u || K.d) g = [(K.r ? 1 : 0) - (K.l ? 1 : 0), (K.d ? 1 : 0) - (K.u ? 1 : 0)].map(v => v * .7);
+      if (el._test) g = el._test;
+      const S = el._S, ev = E().step(el._L, S, g[0], g[1], dt);
+      S.balls.forEach((b, k) => { if (b.inH >= 0 && r.inH[k] < 0) { beep('place'); buzz(15); } r.inH[k] = b.inH; });
+      if (ev.includes('fall')) { beep('snake'); buzz(90); }
+      if (ev.includes('hit') || ev.includes('clack')) beep('line');
+      r.x = S.falls; this.hud(el); RUN.tick(el); paint(el, el._L, S, g);
+      if (ev.includes('win')) { this.end(el, true); return; }
+      requestAnimationFrame(() => this.loop(el));
+    },
+    keys: {},
+    end(el, ok) { const r = el._run; if (!r) return; const t = performance.now() - r.t0, S = el._S, L = el._L, inn = S.balls.filter(b => b.inH >= 0).length; RUN.finish(el, { ok, t, x: S.falls, p: inn / L.balls }); },
+    async anim(el, V, evs) { await chAnim(el, V, evs, this); },
+    tap() { return null; }, status: () => '',
+    bar(V) { return RUN.bar(V, this); }, bindBar() { RUN.bindBar(this); this.hud($('#board')); }
+  };
+})();
+addEventListener('keydown', e => { const m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' }[e.key]; if (m && UI.maze) { UI.maze.keys[m] = true; } });
+addEventListener('keyup', e => { const m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' }[e.key]; if (m && UI.maze) UI.maze.keys[m] = false; });
+
 /* ---- table.js ---- */
 /* =====================================================================
    FamilyNest — game screen + controller (all six games)
@@ -3065,7 +3816,7 @@ function showCurtain(V) {
 }
 function canAct(V) {
   if (!CUR || !V || V.over || CUR.animating || CUR.pending) return false;
-  if (CUR.mode === 'net') return V.me >= 0 && V.turn === V.me;
+  if (CUR.mode === 'net') return V.me >= 0 && (GAMES[V.game].sim ? !V.res[V.me] : V.turn === V.me);
   if (isHidden(V.game) && V.me !== V.turn) return false;
   return V.players[V.turn] && V.players[V.turn].kind === 'human';
 }
@@ -3111,7 +3862,7 @@ function schedule() {
   if (G.game === 'mem' && G.phase === 'show') { delay = 1150 * sp; pick = () => ({ hide: 1 }); }
   else if (p.kind === 'bot' || (typeof autoSeat === 'function' && autoSeat(s))) {
     const base = { slow: 1300, normal: 800, fast: 380 }[ST.speed] || 800;
-    delay = FAST ? 20 : (G.game === 'ludo' && G.phase === 'move') || (G.game === 'mem' && G.up.length === 1) ? 520 * sp : (G.game === 'dots' && G.last >= 0 && G.lines[G.last] === s) ? 450 * sp : base;
+    delay = FAST ? 20 : GAMES[G.game].sim ? 1700 * sp : (G.game === 'ludo' && G.phase === 'move') || (G.game === 'mem' && G.up.length === 1) ? 520 * sp : (G.game === 'dots' && G.last >= 0 && G.lines[G.last] === s) ? 450 * sp : base;
     const lvl = p.kind === 'bot' ? p.lvl : 1;
     if (p.kind === 'bot') { try { thinkTalk(curView()); } catch (x) {} }
     pick = () => GAMES[G.game].ai(G, lvl);
@@ -3146,7 +3897,7 @@ function act(a) {
     const me = CUR; setTimeout(() => { if (CUR === me && CUR.pending) { CUR.pending = false; render(); } }, 9000);
     return;
   }
-  const r = FC.apply(CUR.G, CUR.G.turn, a);
+  const r = FC.apply(CUR.G, GAMES[V.game].sim && CUR.mode === 'net' ? V.me : CUR.G.turn, a);
   if (!r.ok) { beep('err'); toast(T('illegal')); return; }
   after();
 }
@@ -3256,6 +4007,7 @@ function varLabel(V) {
   if (V.game === 'dots') return ' · ' + iso(c.size + '×' + c.size);
   if (V.game === 'mem') return ' · ' + iso(c.pairs * 2);
   if (V.game === 'bs') return ' · ' + iso(c.size + '×' + c.size);
+  if (GAMES[V.game].sim) return ' · ' + T('stageN', { n: iso(c.level) });
   return '';
 }
 function renderPlayers(V) {
@@ -3286,7 +4038,7 @@ function renderBar(V) {
     const label = rollNow ? T('roll') : mine ? T('ld_pick') : em + ' ' + turnText(V);
     h += '<button class="dieBtn' + (rollNow && !CUR.animating ? ' go' : '') + '" id="bRoll" style="--dc:' + PC(ci) + '" ' + (rollNow ? '' : 'disabled') + '>' + dieSVG(CUR.lastRoll || (V.game === 'ludo' ? V.die : V.last) || 0) + '<span>' + label + '</span></button>';
   } else {
-    if (V.game !== 'mem') h += '<button class="btn" id="bHint" ' + (mine ? '' : 'disabled') + ' aria-label="hint">💡</button>';
+    if (V.game !== 'mem' && !GAMES[V.game].sim) h += '<button class="btn" id="bHint" ' + (mine ? '' : 'disabled') + ' aria-label="hint">💡</button>';
     if (canUndo(V)) h += '<button class="btn" id="bUndo" aria-label="undo">↩️</button>';
     h += '<button class="dieBtn" style="--dc:' + PC(ci) + '" disabled><span style="font-size:28px">' + em + '</span><span>' + turnText(V) + '</span></button>';
     if (mine && CUR.ghost != null) h += '<button class="btn main" id="bOk" style="min-width:72px;font-size:24px">✓</button>';
@@ -3366,7 +4118,8 @@ function handleEnd(V) {
   if (newStk.length) setTimeout(() => { beep('match'); toast('🏅 ' + T('newSticker') + ': ' + newStk.map(id => esc(T('st_' + id))).join(' · '), 3500); }, 900);
   const me = mySeat(V), w = V.winner, iWon = me >= 0 && w === me, draw = w === -1;
   const ci = w >= 0 ? UI[V.game].color(V, w) : null;
-  if (draw) { showBanner('🤝 ' + T('draw'), null); beep('draw'); }
+  if (GAMES[V.game].sim && V.players.length === 1) { if (V.failed) { showBanner('💥 ' + T('ch_failT'), null); } else { showBanner('🏆 ' + T('ch_done'), 0); confetti(110); buzz(60); } }
+  else if (draw) { showBanner('🤝 ' + T('draw'), null); beep('draw'); }
   else if (me < 0 || iWon) { showBanner('🏆 ' + (iWon ? T('youWon') : esc(pname(V, w))), ci); beep('win'); confetti(110, ci); buzz(60); }
   else { showBanner(pemoji(V, w) + ' ' + esc(pname(V, w)), ci, T('wonShort')); beep('lose'); buzz(30); }
   const id = CUR.id; setTimeout(() => { if (CUR && CUR.id === id && !anyOv()) showEnd(curView()); }, FAST ? 30 : 1500);
@@ -3377,6 +4130,7 @@ function places(V) {
     if (V.game === 'ludo') return V.tok[s].reduce((a, p) => a + (p < 0 ? 0 : p + 1), 0);
     if (V.game === 'mem' || V.game === 'dots') return V.score[s];
     if (V.game === 'bs') return (V.sunk[1 - s] || []).length;
+    if (GAMES[V.game].sim) return -GAMES[V.game].score(V.res[s]);
     if (V.game === 'dom') return -(V.hands[s] ? GAMES.dom.pips(V.hands[s]) : 0);
     return s === V.winner ? 1 : 0;
   };
@@ -3386,20 +4140,24 @@ function places(V) {
 function showEnd(V) {
   if (!V || !V.over) return;
   const me = mySeat(V), w = V.winner, U = UI[V.game];
-  const title = w === -1 ? '🤝 ' + T('draw') : me >= 0 && w === me ? T('youWon') : T('winnerIs', { n: esc(pname(V, w)) });
-  const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : V.game === 'bs' ? T('sunkN', { n: iso((V.sunk[1 - s] || []).length + '/' + V.fleet.length) }) : V.game === 'dom' ? T('tilesN', { n: iso(V.counts[s]) }) + (V.hands[s] && V.hands[s].length ? ' · ' + T('pipsN', { n: iso(GAMES.dom.pips(V.hands[s])) }) : '') : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
+  const title = GAMES[V.game].sim && V.players.length === 1 ? (V.failed ? '💥 ' + T('ch_failT') : T('ch_done') + ' ' + '⭐'.repeat(GAMES[V.game].stars(GAMES[V.game].level(V.cfg.level), V.res[0]))) : w === -1 ? '🤝 ' + T('draw') : me >= 0 && w === me ? T('youWon') : T('winnerIs', { n: esc(pname(V, w)) });
+  const scoreTxt = s => V.game === 'sl' ? T('cellN', { n: iso(V.pos[s]) }) : V.game === 'ludo' ? T('homeN', { n: iso(V.tok[s].filter(p => p >= 56).length + '/' + V.tok[s].length) }) : V.game === 'mem' ? T('pairsN', { n: iso(V.score[s]) }) : V.game === 'dots' ? T('boxesN', { n: iso(V.score[s]) }) : GAMES[V.game].sim ? chScore(V, s) : V.game === 'bs' ? T('sunkN', { n: iso((V.sunk[1 - s] || []).length + '/' + V.fleet.length) }) : V.game === 'dom' ? T('tilesN', { n: iso(V.counts[s]) }) + (V.hands[s] && V.hands[s].length ? ' · ' + T('pipsN', { n: iso(GAMES.dom.pips(V.hands[s])) }) : '') : (V.players[s].wins ? '🏆 ' + iso(V.players[s].wins + (s === w ? 1 : 0)) : '');
   const rows = places(V).map((x, i) => '<div class="rp' + (x.s === w ? ' win' : '') + '" style="' + pcStyle(U.color(V, x.s)) + '"><span class="pl">' + (w === -1 && (V.tied || []).includes(x.s) ? '🤝' : ['🥇', '🥈', '🥉', '4'][i]) + '</span><span class="em">' + pemoji(V, x.s) + '</span><b>' + esc(pname(V, x.s)) + '</b><span>' + scoreTxt(x.s) + '</span></div>').join('');
   const extra = newStickersHTML(CUR.newStk || []) + (CUR.hints ? '<p class="muted">' + T('hintsUsed', { n: CUR.hints }) + '</p>' : '') + (V.game === 'mem' && V.players.length === 1 ? '<p class="muted">' + T('memFlips', { n: iso(V.flips[0]) }) + '</p>' : '');
   const guest = isGuest(), net = CUR.mode === 'net';
-  const again = guest ? '<p class="muted">' + T('waitHost') + '</p>' : '<button class="btn main huge wide" id="oAgain">🔄 ' + T('playAgain') + '</button>';
+  const nextOk = GAMES[V.game].sim && !guest && V.cfg.level < GAMES[V.game].LEVELS && V.res.some(r => r && r.ok);
+  const again = guest ? '<p class="muted">' + T('waitHost') + '</p>' : (nextOk ? '<button class="btn main huge wide" id="oNext">▶ ' + T('ch_next', { n: iso(V.cfg.level + 1) }) + '</button>' : '') + '<button class="btn ' + (nextOk ? '' : 'main huge ') + 'wide" id="oAgain"' + (nextOk ? ' style="margin-top:8px"' : '') + '>🔄 ' + T(GAMES[V.game].sim ? 'ch_again' : 'playAgain') + '</button>';
   const o = overlay('<div class="trophy">' + (w === -1 ? '🤝' : me >= 0 && w !== me ? pemoji(V, w) : '🏆') + '</div><h2 style="text-align:center">' + title + '</h2><div class="res">' + rows + '</div>' + extra + again
     + '<div class="row" style="margin-top:10px"><button class="btn" id="oHome">🏠 ' + T('home') + '</button>' + (net && !guest ? '<button class="btn" id="oRoom">🌐 ' + T('backRoom') + '</button>' : '') + '<button class="btn" id="oRep">🎬 ' + T('replay') + '</button></div>');
   CUR.endOv = o;
   o.querySelector('#oHome').onclick = () => { closeAllOv(); leaveGame(); };
   o.querySelector('#oRep').onclick = () => { const r = REPLAYS.find(x => x.id === CUR.id) || REPLAYS[0]; if (r) openReplay(r); else toast(T('noReplay')); };
   const ag = o.querySelector('#oAgain'); if (ag) ag.onclick = () => { closeAllOv(); playAgain(); };
+  const nx = o.querySelector('#oNext'); if (nx) nx.onclick = () => { closeAllOv(); playAgain(1); };
   const rm = o.querySelector('#oRoom'); if (rm) rm.onclick = () => { closeAllOv(); show('online'); renderNet(); };
 }
+// challenge games: the result line of one player
+function chScore(V, s) { const r = V.res[s], U = UI[V.game]; if (!r) return ''; return r.ok ? '⏱ ' + iso(CH.fmt(r.t)) + (r.x ? ' · ' + U.xIcon + iso(r.x) : '') : '✗ ' + iso(Math.round(r.p * 100) + '%'); }
 function trackGame(V) {
   const mode = statMode(V), me = mySeat(V), g = V.game;
   inc(g, mode, 'games');
@@ -3413,14 +4171,15 @@ function trackGame(V) {
     if (g === 'mem' && V.players.length === 1) { const s = stat(g, mode), k = 'best' + V.cfg.pairs; if (!s[k] || V.flips[0] < s[k]) s[k] = V.flips[0]; }
   }
   saveStats();
-  if (CUR.G) saveReplay();
+  if (CUR.G && !GAMES[g].sim) saveReplay();
 }
-function playAgain() {
+function playAgain(nextStage) {
   if (!CUR) return;
+  if (nextStage && GAMES[CUR.G.game].sim) { const g = CUR.G.game; if (CUR.mode === 'net') { NET.cfgs = NET.cfgs || {}; NET.cfgs[g] = Object.assign({}, netCfg(), { level: CUR.G.cfg.level + 1 }); } ST.setup[g] = Object.assign({}, ST.setup[g] || {}); ST.setup[g].cfg = Object.assign({}, ST.setup[g].cfg || {}, { level: CUR.G.cfg.level + 1 }); saveST(); }
   if (CUR.mode === 'net') { netStart(true); return; }
   const G = CUR.G, n = G.players.length;
   const players = G.players.map((p, s) => Object.assign({}, p, { wins: p.wins + (G.winner === s ? 1 : 0) }));
-  const cfg = Object.assign({}, G.cfg, { first: (G.cfg.first + 1) % n });
+  const cfg = Object.assign({}, G.cfg, { first: (G.cfg.first + 1) % n }, nextStage && GAMES[G.game].sim ? { level: G.cfg.level + 1 } : {});
   startLocal(players, cfg, G.game);
 }
 function leaveGame() {
@@ -3582,7 +4341,7 @@ function endTalk(V) {
 
 /* ---------- stickers (achievements) ---------- */
 const STICKERS = [
-  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'], ['win_bs', '🚢'], ['win_dom', '🀄'],
+  ['first', '🏆'], ['win_sl', '🐍'], ['win_ludo', '🎲'], ['win_c4', '🔴'], ['win_ttt', '❌'], ['win_mem', '🃏'], ['win_dots', '⬜'], ['win_bs', '🚢'], ['win_dom', '🀄'], ['win_match', '🧩'], ['win_buzz', '⚡'], ['win_maze', '⚪'],
   ['ladders3', '🪜'], ['survivor', '💪'], ['space', '🚀'], ['capper', '💥'], ['three6', '😱'],
   ['beatOwl', '🦉'], ['beatTop', '🥇'], ['perfectDraw', '🤝'], ['elephant', '🐘'], ['memAce', '🧠'], ['boxes5', '📦'],
   ['family', '👨‍👩‍👧'], ['online', '🌐'], ['allGames', '🌈'], ['games10', '🎉'], ['games50', '🌟']
@@ -3784,7 +4543,7 @@ function onNetMsg(d, from) {
   if (!d || !NET) return;
   if (hostSide()) {
     if (d.type === 'act' && CUR && CUR.mode === 'net' && CUR.G) {
-      const gs = gameSeatOf(from); if (d.gid !== CUR.id || gs < 0 || CUR.G.turn !== gs) { pushViews(); return; }
+      const gs = gameSeatOf(from); if (d.gid !== CUR.id || gs < 0 || (GAMES[CUR.G.game].sim ? !!CUR.G.res[gs] : CUR.G.turn !== gs)) { pushViews(); return; }
       const r = FC.apply(CUR.G, gs, d.a || {});
       if (!r.ok) { pushViews(); return; }
       after();
@@ -3889,7 +4648,7 @@ function bindVoice() {
 /* =====================================================================
    FamilyNest — screens: home · setup · settings · stats · replays · rules · about · guide
    ===================================================================== */
-const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄' };
+const GICON = { sl: '🐍', ludo: '🎲', c4: '🔴', ttt: '❌', mem: '🃏', dots: '⬜', bs: '🚢', dom: '🀄', match: '🧩', buzz: '⚡', maze: '⚪' };
 const ART_TILES = ['sl', 'ludo', 'c4', 'ttt', 'mem', 'dots'];      // games that have a drawn home tile
 // computer levels per game: [level, text key, stars] — only levels that passed the measurements
 function levelsOf(game, cfg, n) {
@@ -3902,6 +4661,7 @@ function levelsOf(game, cfg, n) {
   if (game === 'dots') return [[0, 'lv_easy', '⭐'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
   if (game === 'bs') return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
   if (game === 'dom') return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
+  if (GAMES[game] && GAMES[game].sim) return [[0, 'lv_kids', '🧸'], [1, 'lv_med', '⭐⭐'], [2, 'lv_hard', '⭐⭐⭐']];
   return [];
 }
 /* ---------- tile pictures (inline SVG, no files) ---------- */
@@ -3913,6 +4673,9 @@ const TILE_ART = {
   mem: '<svg viewBox="0 0 110 90"><g transform="rotate(-10 34 46)"><rect x="12" y="14" width="44" height="60" rx="8" fill="#ff9f43" stroke="#fff" stroke-width="4"/><text x="34" y="56" text-anchor="middle" font-size="30" fill="#fff" font-family="Secular One,Rubik,sans-serif">?</text></g><g transform="rotate(9 76 46)"><rect x="54" y="14" width="44" height="60" rx="8" fill="#fff" stroke="#fff" stroke-width="4"/><text x="76" y="56" text-anchor="middle" font-size="28">🐶</text></g></svg>',
   bs: '<svg viewBox="0 0 110 90"><rect x="4" y="4" width="102" height="82" rx="12" fill="#2f8fdc"/>' + [1, 2, 3, 4].map(k => '<line x1="' + (4 + k * 20.4) + '" y1="6" x2="' + (4 + k * 20.4) + '" y2="84" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><line x1="6" y1="' + (4 + k * 16.4) + '" x2="104" y2="' + (4 + k * 16.4) + '" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>').join('') + '<rect x="12" y="25" width="56" height="13" rx="6.5" fill="#e8453c"/><circle cx="22" cy="31.5" r="2.4" fill="#fff"/><circle cx="34" cy="31.5" r="2.4" fill="#fff"/><circle cx="46" cy="31.5" r="2.4" fill="#fff"/><circle cx="58" cy="31.5" r="2.4" fill="#fff"/><rect x="80" y="44" width="13" height="34" rx="6.5" fill="#f4b81c"/><circle cx="86.5" cy="51" r="2.4" fill="#fff"/><circle cx="86.5" cy="61" r="2.4" fill="#fff"/><circle cx="86.5" cy="71" r="2.4" fill="#fff"/><circle cx="38" cy="62" r="9" fill="#ff9800"/><path d="M33 57 L43 67 M43 57 L33 67" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="64" cy="70" r="5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="64" cy="70" r="2" fill="#fff"/></svg>',
   dom: '<svg viewBox="0 0 110 90"><rect x="4" y="8" width="102" height="74" rx="12" fill="#2f9e5f"/>' + [[14, 30, 0, 3, 5], [56, 30, 0, 5, 6], [36, 50, 0, 2, 2]].map(([x, y, r, a, b]) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + (r - 8) + ')"><rect width="40" height="20" rx="4" fill="#fffdf6" stroke="#333" stroke-width="1.2"/><line x1="20" y1="3" x2="20" y2="17" stroke="#333" stroke-width="1.2"/>' + [[a, 0], [b, 20]].map(([v, ox]) => (PIPS[v] || []).map(([px, py]) => '<circle cx="' + (ox + 3 + px * 14) + '" cy="' + (3 + py * 14) + '" r="1.8" fill="' + (v === 6 ? '#c62828' : '#222') + '"/>').join('')).join('') + '</g>').join('') + '</svg>',
+  match: '<svg viewBox="0 0 110 90"><g stroke="#5a3d1e" stroke-width="1.5"><polygon points="20,20 50,20 50,50 20,50" fill="#fff8e8"/><polygon points="50,20 80,20 80,50 50,50" fill="#fff8e8"/><polygon points="35,50 65,50 50,76" fill="#fff8e8"/></g><path d="M50 27 a8 8 0 0 1 0 16" fill="#2f9e4f"/><path d="M50 27 a8 8 0 0 0 0 16" fill="#2f9e4f" opacity=".85"/><circle cx="35" cy="50" r="7" fill="#e8453c"/><circle cx="65" cy="50" r="7" fill="#2f74d8"/><circle cx="35" cy="20" r="6" fill="#f4b81c"/><circle cx="80" cy="35" r="6" fill="#9b5de5"/><path d="M84 66 l6 -6 l6 6 l-6 6z" fill="#ff8c2a"/></svg>',
+  buzz: '<svg viewBox="0 0 110 90"><rect x="6" y="8" width="98" height="74" rx="10" fill="#2b3440"/><path d="M16 70 C 30 20, 45 75, 60 40 S 85 10, 94 22" fill="none" stroke="#c9803f" stroke-width="4" stroke-linecap="round"/><path d="M16 70 C 30 20, 45 75, 60 40 S 85 10, 94 22" fill="none" stroke="#ffd8a8" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="70" r="6" fill="#2f9e4f"/><circle cx="94" cy="22" r="6" fill="#e8453c"/><circle cx="52" cy="52" r="9" fill="none" stroke="#e3e9ee" stroke-width="3"/><path d="M58 58 l9 9" stroke="#5d4037" stroke-width="4" stroke-linecap="round"/><path d="M40 30 l4 6 l-3 1 l5 7" fill="none" stroke="#ffeb3b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  maze: '<svg viewBox="0 0 110 90"><rect x="8" y="6" width="94" height="78" rx="10" fill="#d9a066" stroke="#7a4518" stroke-width="3"/><g stroke="#7a4518" stroke-width="3.5" stroke-linecap="round"><path d="M30 6 V44 M30 62 V84 M52 26 V64 M74 6 V30 M74 48 H102 M52 64 H82"/></g><circle cx="88" cy="20" r="7" fill="#3a2210" stroke="#ffd54a" stroke-width="1.5"/><circle cx="40" cy="74" r="7" fill="#3a2210" stroke="#ffd54a" stroke-width="1.5"/><circle cx="19" cy="22" r="6" fill="#c9d1d9"/><circle cx="17" cy="20" r="2" fill="#fff"/><circle cx="64" cy="40" r="6" fill="#c9d1d9"/><circle cx="62" cy="38" r="2" fill="#fff"/></svg>',
   dots: '<svg viewBox="0 0 90 90"><rect x="4" y="4" width="82" height="82" rx="12" fill="#fff"/><rect x="17" y="17" width="26" height="26" fill="#e8453c" opacity=".8"/><rect x="45" y="45" width="26" height="26" fill="#2f74d8" opacity=".8"/><g stroke-width="4" stroke-linecap="round"><path d="M15 15 H45 V45 H15 Z" stroke="#e8453c" fill="none"/><path d="M45 45 H75 V75 H45 Z" stroke="#2f74d8" fill="none"/><path d="M45 15 H75" stroke="#e8453c"/></g>' + [15, 45, 75].map(y => [15, 45, 75].map(x => '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#333"/>').join('')).join('') + '</svg>'
 };
 function renderHome() {
@@ -3957,13 +4720,20 @@ function optionsEditor(el, game, cfg, n, onChange) {
     if (game === 'mem') h += '<label class="f">' + T('opt_cards') + segHTML('pairs', [[6, '12'], [8, '16'], [10, '20'], [12, '24']], cfg.pairs) + '</label><label class="f" style="margin-top:8px">' + T('opt_pics') + segHTML('set', Object.keys(MEM_SETS).map(k => [k, memHTML(k, 0) + ' ' + T('set_' + k)]), cfg.set) + '</label>';
     if (game === 'dots') h += '<label class="f">' + T('opt_board') + segHTML('size', [[3, '3×3'], [4, '4×4'], [5, '5×5']], cfg.size) + '</label>';
     if (game === 'bs') h += '<label class="f">' + T('opt_board') + segHTML('size', [[10, '10×10'], [8, '8×8'], [6, '6×6 · ' + T('opt_kids')]], cfg.size) + '</label><p class="muted" style="font-size:13px;margin:4px 0 0">🚢 ' + T('bs_fleetOf', { n: GAMES.bs.FLEETS[cfg.size || 10].join(' · ') }) + '</p>';
+    if (GAMES[game].sim) {
+      const P = progOf(game), N = GAMES[game].LEVELS, open = P.max + 3;
+      if (cfg.level > Math.max(open, 1)) cfg.level = Math.min(N, open);
+      h += '<label class="f">' + T('opt_stage') + '<div class="stg">' + Array.from({ length: N }, (_, k) => { const n = k + 1, lock = n > open; return '<button data-stg="' + n + '"' + (cfg.level === n ? ' class="on"' : '') + (lock ? ' disabled' : '') + '><b class="ltr">' + n + '</b><small>' + (lock ? '🔒' : '⭐'.repeat(P.st[n] || 0) || '·') + '</small></button>'; }).join('') + '</div></label>';
+      if (game !== 'match') h += '<label class="f" style="margin-top:8px">' + T('opt_ctrl') + segHTML('ctrl', [['finger', '👆 ' + T('ctrl_finger')], ['tilt', '📱 ' + T('ctrl_tilt')]], cfg.ctrl || GAMES[game].DEF.ctrl) + '</label>';
+    }
     if (game === 'dom') h += '<label class="f">' + T('opt_face') + segHTML('face', [['dots', '⚅ ' + T('face_dots')], ['pics', memHTML('animals', 0) + ' ' + T('face_pics')]], cfg.face || 'dots') + '</label>';
     h += '<label class="f" style="margin-top:8px">' + T('opt_first') + segHTML('firstMode', [['rand', '🎲 ' + T('first_rand')], ['p1', '1️⃣ ' + T('first_p1')]], cfg.firstMode || 'rand') + '</label>';
     if (SWITCHES[game]) h += '<h3 style="margin-top:12px">🏠 ' + T('houseRules') + '</h3>' + SWITCHES[game].map(([k, t]) => '<div class="sw"><span>' + T(t) + '<small class="muted">' + T(t + 'D') + '</small></span><input type="checkbox" data-r="' + k + '"' + (cfg[k] ? ' checked' : '') + '></div>').join('');
     el.innerHTML = h;
     el.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { cfg.board = b.dataset.b; draw(); ch(); });
     ['tokens', 'size', 'pairs'].forEach(k => bindSeg(el, k, v => { cfg[k] = +v; draw(); ch(); }));
-    ['set', 'firstMode', 'face'].forEach(k => bindSeg(el, k, v => { cfg[k] = v; ch(); }));
+    el.querySelectorAll('[data-stg]').forEach(b => b.onclick = () => { cfg.level = +b.dataset.stg; draw(); ch(); });
+    ['set', 'firstMode', 'face', 'ctrl'].forEach(k => bindSeg(el, k, v => { cfg[k] = v; ch(); }));
     el.querySelectorAll('[data-r]').forEach(c => c.onchange = () => { cfg[c.dataset.r] = c.checked; ch(); });
   };
   draw();
@@ -3978,6 +4748,7 @@ function cfgSummary(game, c) {
   if (game === 'mem') f.push(T('cardsN', { n: c.pairs * 2 }), T('set_' + c.set));
   if (game === 'bs') { f.push(c.size + '×' + c.size); SWITCHES.bs.forEach(([k, t]) => { if (c[k]) f.push(T(t)); }); }
   if (game === 'dom') f.push(T('face_' + (c.face || 'dots')));
+  if (GAMES[game].sim) { f.push(T('stageN', { n: c.level || 1 })); if (c.ctrl) f.push(T('ctrl_' + c.ctrl)); }
   return f.join(' · ');
 }
 
